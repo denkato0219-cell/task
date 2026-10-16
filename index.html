@@ -61,7 +61,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .next .pic{font-size:2.6rem;line-height:1}
 .next b{font-size:1.3rem;font-family:var(--display);font-weight:500}
 .strip{display:flex;flex-direction:column;gap:8px;list-style:none;margin:0;padding:0}
-.strip li{display:grid;grid-template-columns:3.6rem 2.4rem 1fr auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.ap{font-size:.55em;font-weight:700;margin-right:.3em;letter-spacing:.04em}
+.range .ap{font-size:.9em}
+.strip .t .ap{display:block;font-size:.72rem;margin:0;line-height:1.2}
+.strip li{display:grid;grid-template-columns:4rem 2.4rem 1fr auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
 .strip .t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
 .strip .pic{font-size:1.6rem;text-align:center;line-height:1}
 .strip .n{min-width:0;font-weight:700}
@@ -173,6 +176,12 @@ function taskName(t,mode=MODE){
 }
 const taskPlain = t => (MODE==="kana"?(t.yomi||t.name):(t.name||t.yomi))||"";
 const taskSpoken = t => t.yomi||t.name||"";
+/* Clock style per child: "ampm" (default, 午前 7:30) or "24" (19:30) */
+function hm(s,c=child()){
+  if(c.clock==="24") return s;
+  const m=toMin(s), h=Math.floor(m/60), mm=String(m%60).padStart(2,"0");
+  return `<span class="ap">${tx(h<12?"{午前|ごぜん}":"{午後|ごご}")}</span>${h<12?h:(h===12?12:h-12)}:${mm}`;
+}
 const pic = t => t.img?`<img src="${t.img}" alt="">`:esc(t.icon||"🧩");
 
 /* Hanamaru: scalloped flower + spiral, drawn once as SVG */
@@ -419,24 +428,24 @@ function renderKid(){
   } else if(cur){
     const s=toMin(cur.start),e=toMin(cur.end),left=Math.max(0,e-n),pr=left/(e-s), isDone=done.includes(cur.id);
     h+=`<section class="now">
-      <div><div class="pic" aria-hidden="true">${pic(cur)}</div><h2>${taskName(cur)}</h2><div class="range">${cur.start} 〜 ${cur.end}</div></div>
+      <div><div class="pic" aria-hidden="true">${pic(cur)}</div><h2>${taskName(cur)}</h2><div class="range">${hm(cur.start)} 〜 ${hm(cur.end)}</div></div>
       <div class="disk" style="--p:${pr.toFixed(4)}" role="img" aria-label="${Math.ceil(left)}"><span>${tx(W.left)} ${Math.ceil(left)}${tx(W.min)}</span></div>
       <button class="done-btn" data-done="${cur.id}" aria-pressed="${isDone}">${isDone?HANAMARU:""}${tx(W.done)}</button>
       <div class="extend"><span>${tx(W.extend)}</span>${[5,10,15].map(m=>`<button type="button" data-extend="${m}">＋${m}${tx(W.min)}</button>`).join("")}
         ${Object.keys(c.day.shifts).length?`<button type="button" data-undo>${tx(W.undoDay)}</button>`:""}</div></section>`;
   } else if(n<toMin(p.wake)||(!nxt&&list.length&&n>=toMin(list[list.length-1].end)&&n>=20*60)){
-    h+=`<section class="now"><div><div class="pic">🌙</div><h2>${tx(W.sleeping)}</h2><div class="range">${tx(W.wakeAt)} ${p.wake}</div></div></section>`;
+    h+=`<section class="now"><div><div class="pic">🌙</div><h2>${tx(W.sleeping)}</h2><div class="range">${tx(W.wakeAt)} ${hm(p.wake)}</div></div></section>`;
   } else {
-    h+=`<section class="now"><div><div class="pic">🤗</div><h2>${tx(W.free)}</h2><div class="range">${nxt?tx(W.nextFrom)+" "+nxt.start+" "+tx(W.from):tx(W.dayEnd)}</div></div></section>`;
+    h+=`<section class="now"><div><div class="pic">🤗</div><h2>${tx(W.free)}</h2><div class="range">${nxt?tx(W.nextFrom)+" "+hm(nxt.start)+" "+tx(W.from):tx(W.dayEnd)}</div></div></section>`;
   }
-  if(nxt) h+=`<div class="label">${tx(W.next)}</div><section class="next"><div class="pic" aria-hidden="true">${pic(nxt)}</div><div><b>${taskName(nxt)}</b><div class="range">${nxt.start} ${tx(W.from)}（${tx(W.left)} ${Math.ceil(toMin(nxt.start)-n)}${tx(W.min)}）</div></div></section>`;
+  if(nxt) h+=`<div class="label">${tx(W.next)}</div><section class="next"><div class="pic" aria-hidden="true">${pic(nxt)}</div><div><b>${taskName(nxt)}</b><div class="range">${hm(nxt.start)} ${tx(W.from)}（${tx(W.left)} ${Math.ceil(toMin(nxt.start)-n)}${tx(W.min)}）</div></div></section>`;
   if(p){
     h+=`<div class="label">${tx(W.today)}（${esc(plain(p.name))}）</div><ul class="strip">
-      <li class="${n>=toMin(p.wake)?"is-past":""}"><span class="t">${p.wake}</span><span class="pic">⏰</span><span class="n">${tx(W.wakeup)}</span><span></span></li>`;
+      <li class="${n>=toMin(p.wake)?"is-past":""}"><span class="t">${hm(p.wake)}</span><span class="pic">⏰</span><span class="n">${tx(W.wakeup)}</span><span></span></li>`;
     for(const t of list){
       const d=done.includes(t.id), s=toMin(t.start), e=toMin(t.end);
       const cls=[d?"is-done":"", s<=n&&n<e?"is-now":"", n>=e?"is-past":""].join(" ");
-      h+=`<li class="${cls}"><span class="t">${t.start}</span><span class="pic" aria-hidden="true">${pic(t)}</span><span class="n">${taskName(t)}${t.notify===false?` <span class="mute">🔕</span>`:""}</span>
+      h+=`<li class="${cls}"><span class="t">${hm(t.start)}</span><span class="pic" aria-hidden="true">${pic(t)}</span><span class="n">${taskName(t)}${t.notify===false?` <span class="mute">🔕</span>`:""}</span>
         <button class="mark hanamaru" data-done="${t.id}" aria-pressed="${d}" aria-label="できた">${d?HANAMARU:""}</button></li>`;
     }
     h+=`</ul>`;
@@ -475,6 +484,8 @@ function renderSet(){
     <div class="row"><label class="field"><span>もじの かきかた</span><select id="textMode">
       ${[["kana","ひらがなだけ"],["ruby","漢字＋ふりがな"],["kanji","漢字"]].map(([v,l])=>`<option value="${v}" ${v===c.textMode?"selected":""}>${l}</option>`).join("")}</select></label>
       <span class="status">れい：${tx(W.today,c.textMode)}</span></div>
+    <div class="row"><label class="field"><span>じかんの かきかた</span><select id="clockMode">
+      ${[["ampm","ごぜん・ごご（ごご 7:30）"],["24","24じかん（19:30）"]].map(([v,l])=>`<option value="${v}" ${(c.clock||"ampm")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
     <div class="row"><button class="iconbtn" id="addChild" type="button" ${store.children.length>=10?"disabled":""}>＋ こどもを ふやす</button>
       ${store.children.length>1?`<button class="del" id="delChild" type="button" style="margin:0">この こどもを この iPhoneから けす</button>`:""}</div>
     <div id="confirmChild" hidden class="row"><span>${esc(c.name)}さんの よていを ぜんぶ けしますか？</span><button class="del" id="yesChild" type="button" style="margin:0">けす</button><button class="iconbtn" id="noChild" type="button">やめる</button></div>
@@ -570,6 +581,7 @@ setv.addEventListener("change",async ev=>{
     case "childSel": store.current=el.value; editPattern=null; ensureDay(); break;
     case "childName": c.name=el.value||"こども"; break;
     case "textMode": c.textMode=el.value; break;
+    case "clockMode": c.clock=el.value; break;
     case "voice": c.voice=el.checked; break;
     case "preMin": c.preMin=+el.value; break;
     case "warnMin": c.warnMin=+el.value; break;
@@ -639,7 +651,7 @@ document.getElementById("modeBtn").onclick=()=>{
 let lastMinute=-1, lastMode="";
 function tick(){
   const d=new Date(), c=child();
-  document.getElementById("clock").textContent=fmt(d.getHours()*60+d.getMinutes());
+  MODE=c.textMode; document.getElementById("clock").innerHTML=hm(fmt(d.getHours()*60+d.getMinutes()),c);
   document.getElementById("date").innerHTML=c.textMode==="kana"?`${d.getMonth()+1}がつ ${d.getDate()}にち（${WDK[d.getDay()]}ようび）`:tx(`${d.getMonth()+1}{月|がつ} ${d.getDate()}{日|にち}（{${WD[d.getDay()]}|${WDK[d.getDay()]}}）`,c.textMode);
   checkEvents();
   const m=d.getHours()*60+d.getMinutes();
