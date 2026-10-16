@@ -99,7 +99,7 @@ input[type=time]{font-variant-numeric:tabular-nums}
 .del{border:1px solid var(--line);background:transparent;color:var(--danger);border-radius:10px;padding:6px 12px;margin-left:auto}
 .warn{color:var(--danger);font-size:.85rem;grid-column:1/-1}
 .ghost{border:2px dashed var(--accent);background:transparent;color:var(--accent);border-radius:14px;padding:12px;font-weight:700}
-.status{font-size:.8rem;color:var(--muted);margin:0}
+.status{font-size:.8rem;color:var(--muted);margin:0;white-space:pre-line;overflow-wrap:anywhere}
 .code{font-family:var(--display);font-size:1.6rem;letter-spacing:.08em;font-variant-numeric:tabular-nums;user-select:all}
 .note{font-size:.85rem;background:var(--now);border-radius:10px;padding:8px 12px;margin:0}
 /* overlays */
@@ -323,9 +323,28 @@ async function disablePush(code=child().code){
   }catch(e){ netNote="とめられませんでした（"+e.message+"）"; }
   if(mode==="set") renderSet();
 }
-async function testPush(){
-  try{ const r=await api("/api/children/"+child().code+"/test",{method:"POST"}); netNote=r.sent?"テストつうちを "+r.sent+"だいに おくりました":"つうちを うける たんまつが まだ ありません"; }
-  catch(e){ netNote=e.message; }
+async function testPush(later){
+  try{
+    if(later){ await api("/api/children/"+child().code+"/test?delay=1",{method:"POST"}); netNote="1〜2ふんごに テストつうちが とどきます。いまのうちに iPhoneを ロックして まってください"; }
+    else { const r=await api("/api/children/"+child().code+"/test",{method:"POST"}); netNote=r.sent?"テストつうちを "+r.sent+"だいに おくりました":"おくれませんでした。「サーバーの じょうたい」を みてください"; }
+  }catch(e){ netNote=e.message; }
+  setStatus();
+}
+const clockOf = t => { const d=new Date(t); return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+const PUSH_REASON = {201:"とどけました",200:"とどけました",400:"ないようの まちがい",403:"にんしょう エラー",404:"とうろくが きえています",410:"とうろくが きえています",413:"ないようが おおきすぎ",429:"おくりすぎ",0:"つうしん エラー"};
+async function serverStatus(){
+  try{
+    const r=await api("/api/children/"+child().code+"/status");
+    const sub=await navigator.serviceWorker?.ready.then(g=>g.pushManager.getSubscription()).catch(()=>null);
+    const lines=[];
+    lines.push("この iPhoneの つうち きょか: "+(window.Notification?Notification.permission:"なし")+" ／ とうろく: "+(sub?"あり":"なし"));
+    lines.push("サーバーが さいごに うごいた: "+(r.lastSchedulerRun?clockOf(r.lastSchedulerRun)+"（"+Math.round((r.now-r.lastSchedulerRun)/60000)+"ふん まえ）":"まだ"));
+    lines.push("つうちを うける たんまつ: "+r.devices.length+"だい"+(r.devices.length?"（"+r.devices.map(d=>d.host).join(", ")+"）":""));
+    lines.push("さいきん おくった けっか:");
+    if(!r.log.length) lines.push("　まだ ありません");
+    for(const l of r.log) lines.push("　"+clockOf(l.at)+" "+l.status+" "+(PUSH_REASON[l.status]||"")+(l.reason?" "+l.reason:""));
+    netNote=lines.join("\n");
+  }catch(e){ netNote=e.message; }
   setStatus();
 }
 function setStatus(){ const el=document.getElementById("netStatus"); if(el) el.textContent=netNote; }
@@ -361,7 +380,6 @@ function announce(icon,shown,spoken){
   document.getElementById("ovPic").innerHTML=icon;
   document.getElementById("ovText").textContent=shown.join("\n");
   document.getElementById("overlay").hidden=false;
-  try{ if(window.Notification&&Notification.permission==="granted") new Notification(shown.join(" ")); }catch(e){}
 }
 document.getElementById("ovOk").onclick=()=>{ document.getElementById("overlay").hidden=true; };
 let praiseTimer;
@@ -497,7 +515,9 @@ function renderSet(){
     ${c.code?`<div class="field"><span>${esc(c.name)}さんの コード</span><div class="row"><span class="code">${fmtCode(c.code)}</span><button class="iconbtn" id="copyCode" type="button">コピー</button></div></div>
       <p class="status">ほかの iPhoneで この コードを いれると、おなじ よていを つかえます。どちらで かえても どうき されます。コードは ほかの人に おしえないでください。</p>
       <div class="row">${store.device.push[c.code]?`<button class="iconbtn" id="pushOff" type="button">この iPhoneの つうちを とめる</button>`:`<button class="primary" id="pushOn" type="button">この iPhoneで つうちを うける</button>`}
-        <button class="iconbtn" id="pushTest" type="button">テスト つうち</button></div>`
+        <button class="iconbtn" id="pushTest" type="button">テスト つうち</button>
+        <button class="iconbtn" id="pushTestLater" type="button">1ぷんごに テスト（ロックして まつ）</button>
+        <button class="iconbtn" id="srvStatus" type="button">サーバーの じょうたい</button></div>`
     :`<p class="status">しえんいんの かた：事業所キーを いれて この こどもを サーバーに とうろくすると、かぞくに わたす コードが できます。</p>
       <div class="row"><label class="field"><span>事業所キー</span><input type="password" id="orgKey" value="${esc(store.device.orgKey)}" autocomplete="off"></label>
         <button class="primary" id="registerBtn" type="button">とうろくして コードを つくる</button></div>`}
@@ -625,7 +645,9 @@ setv.addEventListener("click",ev=>{
     case "importBtn": importCode(); break;
     case "pushOn": enablePush(); break;
     case "pushOff": disablePush(); break;
-    case "pushTest": testPush(); break;
+    case "pushTest": testPush(false); break;
+    case "pushTestLater": testPush(true); break;
+    case "srvStatus": serverStatus(); break;
     case "copyCode": navigator.clipboard?.writeText(fmtCode(c.code)).then(()=>{ el.textContent="コピーしました"; },()=>{}); break;
     case "resetMsgs": c.msgs={...DEFAULT_MSGS}; changed(); break;
     case "clearDone": c.day.done=[]; save(); el.textContent="リセットしました"; break;

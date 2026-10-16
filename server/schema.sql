@@ -20,3 +20,12 @@ CREATE TABLE IF NOT EXISTS meta (
   k TEXT PRIMARY KEY,
   v TEXT NOT NULL
 );
+-- Result of each push attempt (kept short), so problems can be seen from the app.
+CREATE TABLE IF NOT EXISTS push_log (
+  code TEXT NOT NULL,
+  host TEXT NOT NULL,
+  status INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_log_code ON push_log(code, at);

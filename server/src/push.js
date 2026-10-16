@@ -87,5 +87,6 @@ export async function sendPush(sub, payload, vapid, subject, { ttl = 600 } = {})
     },
     body,
   });
-  return { ok: res.ok, status: res.status, gone: res.status === 404 || res.status === 410 };
+  const reason = res.ok ? "" : (await res.text().catch(() => "")).slice(0, 200);
+  return { ok: res.ok, status: res.status, reason, gone: res.status === 404 || res.status === 410 };
 }

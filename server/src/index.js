@@ -7,7 +7,8 @@
 //   PUT    /api/children/:code              { data, updatedAt } -> { updatedAt }
 //   POST   /api/children/:code/devices      { subscription } -> { ok }
 //   DELETE /api/children/:code/devices      { endpoint } -> { ok }
-//   POST   /api/children/:code/test         -> { sent }
+//   POST   /api/children/:code/test         ?delay=1 sends it from the scheduler a minute later -> { sent | queued }
+//   GET    /api/children/:code/status       -> devices, recent push results, last scheduler run
 // Cron (every minute): sends the messages due for each child to that child's devices.
 
 import { generateVapidKeys, sendPush } from "./push.js";
@@ -65,6 +66,14 @@ async function vapid(env) {
   return (vapidCache = JSON.parse(await meta(env, "vapid")));
 }
 
+async function logPush(env, code, endpoint, status, reason) {
+  const now = Date.now();
+  await env.DB.prepare("INSERT INTO push_log (code, host, status, reason, at) VALUES (?, ?, ?, ?, ?)").bind(code, new URL(endpoint).host, status, reason, now).run();
+  await env.DB.prepare("DELETE FROM push_log WHERE at < ?").bind(now - 3 * 24 * 3600 * 1000).run();
+}
+
+const TEST_MSG = () => ({ title: "🔔 テスト", body: "つうちが とどきました", tag: "test-" + Date.now() });
+
 async function pushToChild(env, code, payload) {
   const { results } = await env.DB.prepare("SELECT endpoint, p256dh, auth FROM devices WHERE code = ?").bind(code).all();
   if (!results.length) return 0;
@@ -73,10 +82,11 @@ async function pushToChild(env, code, payload) {
   await Promise.all(results.map(async sub => {
     try {
       const r = await sendPush(sub, payload, keys, env.PUSH_SUBJECT);
+      await logPush(env, code, sub.endpoint, r.status, r.reason || "");
       if (r.ok) sent++;
       else if (r.gone) await env.DB.prepare("DELETE FROM devices WHERE endpoint = ?").bind(sub.endpoint).run();
       else console.log("push failed", r.status, new URL(sub.endpoint).host);
-    } catch (e) { console.log("push error", e.message); }
+    } catch (e) { console.log("push error", e.message); await logPush(env, code, sub.endpoint, 0, e.message).catch(() => {}); }
   }));
   return sent;
 }
@@ -102,7 +112,7 @@ async function handle(req, env) {
     return fail(env, 500, "コードを作れませんでした。もう一度ためしてください");
   }
 
-  const m = url.pathname.match(/^\/api\/children\/([^/]+)(\/devices|\/test)?$/);
+  const m = url.pathname.match(/^\/api\/children\/([^/]+)(\/devices|\/test|\/status)?$/);
   if (!m) return fail(env, 404, "見つかりません");
   const code = normCode(decodeURIComponent(m[1]));
   const row = await env.DB.prepare("SELECT data, updated_at FROM children WHERE code = ?").bind(code).first();
@@ -134,8 +144,18 @@ async function handle(req, env) {
     return json(env, { ok: true });
   }
   if (m[2] === "/test" && req.method === "POST") {
-    const sent = await pushToChild(env, code, { title: "🔔 テスト", body: "つうちが とどきました", tag: "test-" + Date.now() });
-    return json(env, { sent });
+    if (url.searchParams.get("delay")) {
+      await setMeta(env, "test:" + code, String(Math.floor(Date.now() / 60000) + 1));
+      return json(env, { queued: true });
+    }
+    return json(env, { sent: await pushToChild(env, code, TEST_MSG()) });
+  }
+  if (m[2] === "/status" && req.method === "GET") {
+    const devices = (await env.DB.prepare("SELECT endpoint, created_at FROM devices WHERE code = ?").bind(code).all()).results
+      .map(d => ({ host: new URL(d.endpoint).host, since: d.created_at }));
+    const log = (await env.DB.prepare("SELECT host, status, reason, at FROM push_log WHERE code = ? ORDER BY at DESC LIMIT 10").bind(code).all()).results;
+    const lastMinute = Number(await meta(env, "last_minute")) || 0;
+    return json(env, { now: Date.now(), lastSchedulerRun: lastMinute * 60000, devices, log });
   }
   return fail(env, 405, "この操作はできません");
 }
@@ -149,8 +169,16 @@ export async function runSchedule(env, now = new Date()) {
   for (let t = Math.max(last + 1, nowMin - 4); t <= nowMin; t++) minutes.push(t);
   if (!minutes.length) return 0;
 
-  const { results } = await env.DB.prepare("SELECT code, data FROM children WHERE code IN (SELECT DISTINCT code FROM devices)").all();
   let sent = 0;
+  // Delayed test notifications ("1分後にテスト"), so a locked phone can be checked.
+  const tests = (await env.DB.prepare("SELECT k, v FROM meta WHERE k LIKE 'test:%'").all()).results;
+  for (const t of tests) {
+    if (Number(t.v) > nowMin) continue;
+    await env.DB.prepare("DELETE FROM meta WHERE k = ?").bind(t.k).run();
+    sent += await pushToChild(env, t.k.slice(5), TEST_MSG());
+  }
+
+  const { results } = await env.DB.prepare("SELECT code, data FROM children WHERE code IN (SELECT DISTINCT code FROM devices)").all();
   for (const row of results) {
     const child = JSON.parse(row.data);
     for (const t of minutes) {

@@ -115,4 +115,26 @@ test("API + scheduler deliver an encrypted push at the right minute", async () =
   const msg = JSON.parse(b.decrypt(got[0].body));
   assert.equal(msg.body, "あさごはん、おわりだよ\nいまから、はみがきを はじめるよ");
   assert.equal(await runSchedule(env, new Date("2026-10-15T22:30:40Z")), 0, "same minute is not sent twice");
+
+  const st = await call("GET", `/api/children/${code}/status`);
+  assert.equal(st.body.devices.length, 1);
+  assert.equal(st.body.log[0].status, 201);
+
+});
+
+test("delayed test notification is sent by the scheduler", async () => {
+  const env = { DB: fakeD1(), ORG_KEY: "k", PUSH_SUBJECT: "https://example.org/" };
+  const call = async (method, path, body, headers = {}) => (await worker.fetch(new Request("https://w.example" + path, { method, body: body && JSON.stringify(body), headers }), env)).json();
+  const { code } = await call("POST", "/api/children", { data: { patterns: [] } }, { "X-Org-Key": "k" });
+  const got = [];
+  const srv = http.createServer((req, res) => { req.resume(); req.on("end", () => { got.push(1); res.writeHead(201).end(); }); });
+  await new Promise(r => srv.listen(0, r));
+  const b = await fakeBrowser();
+  env.DB.raw.prepare("INSERT INTO devices (endpoint, code, p256dh, auth, created_at) VALUES (?, ?, ?, ?, 0)").run(`http://127.0.0.1:${srv.address().port}/p`, code, b.p256dh, b.auth);
+  assert.deepEqual(await call("POST", `/api/children/${code}/test?delay=1`), { queued: true });
+  assert.equal(await runSchedule(env, new Date()), 0, "not yet");
+  assert.equal(await runSchedule(env, new Date(Date.now() + 61000)), 1);
+  assert.equal(await runSchedule(env, new Date(Date.now() + 122000)), 0, "only once");
+  srv.close();
+  assert.equal(got.length, 1);
 });
