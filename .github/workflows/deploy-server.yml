@@ -70,7 +70,7 @@ jobs:
             NEW="kyou-yotei-$(openssl rand -hex 3)"
             echo "workers.dev のサブドメインがないので $NEW を作ります"
             RES=$(curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "{\"subdomain\":\"$NEW\"}" "$API")
-            echo "$RES" | grep -q '"success":true' || { echo "::error::Cloudflare の答え（確認）: $(echo "$GET" | why) ／（作成）: $(echo "$RES" | why)"; echo "::error::workers.dev のサブドメインを作れませんでした。Cloudflare の「Workers & Pages」を開いてサブドメインを登録してから、もう一度 Run workflow してください"; exit 1; }
+            echo "$RES" | grep -qE '"success": ?true' || { echo "::error::Cloudflare の答え（確認）: $(echo "$GET" | why) ／（作成）: $(echo "$RES" | why)"; echo "::error::workers.dev のサブドメインを作れませんでした。Cloudflare の「Workers & Pages」を開いてサブドメインを登録してから、もう一度 Run workflow してください"; exit 1; }
             SUB="$NEW"
           fi
           echo "subdomain=$SUB" >> "$GITHUB_OUTPUT"
