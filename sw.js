@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Push handling is added with the notification server.
-const CACHE = "kyou-yotei-v1";
+const CACHE = "kyou-yotei-v2";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {

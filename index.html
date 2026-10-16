@@ -9,7 +9,6 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>きょうのよてい</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500&family=Zen+Maru+Gothic:wght@500;700&display=swap">
 <style>
@@ -17,25 +16,22 @@
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
 [hidden]{display:none!important}
-
-/* Layout: one calm column. Top = clock, then the big "now" card with a Time-Timer style disk, then "next", then the day's picture strip. Settings slide in as a second view. */
+/* Layout: one calm column. Clock, "now" card with a Time-Timer style disk, "next", then the day's picture strip. Settings are a second view. */
 :root{
   --bg:#eef4f1; --surface:#ffffff; --ink:#20332e; --muted:#5f736d; --line:#d3e1db;
   --accent:#2f7d6d; --accent-ink:#ffffff; --now:#fff4cf; --now-line:#e9c957;
-  --timer:#e06a4f; --done:#9fb5ad; --danger:#b4473a;
+  --timer:#e06a4f; --done:#9fb5ad; --danger:#b4473a; --hanamaru:#e0483e;
   --display:"Kiwi Maru","Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;
   --body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Meiryo",sans-serif;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+@media (prefers-color-scheme: dark){:root{
   --bg:#141c1a; --surface:#1d2926; --ink:#e6efeb; --muted:#9db1aa; --line:#2f403b;
   --accent:#5fc0aa; --accent-ink:#0f1a17; --now:#3a331b; --now-line:#b89a36;
-  --timer:#e9826a; --done:#566a64; --danger:#e07a6c; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#141c1a; --surface:#1d2926; --ink:#e6efeb; --muted:#9db1aa; --line:#2f403b;
-  --accent:#5fc0aa; --accent-ink:#0f1a17; --now:#3a331b; --now-line:#b89a36;
-  --timer:#e9826a; --done:#566a64; --danger:#e07a6c; color-scheme:dark}
+  --timer:#e9826a; --done:#566a64; --danger:#e07a6c; --hanamaru:#ff6b5e; color-scheme:dark}}
 html,body{min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+rt{font-size:.5em;font-weight:500}
 .wrap{max-width:640px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -43,55 +39,75 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .clock{font-family:var(--display);font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
 .date{color:var(--muted);font-size:.95rem}
 .iconbtn{white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;font-weight:700}
+.iconbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .start{display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--surface);border:2px dashed var(--accent);border-radius:20px;padding:16px}
 .start p{margin:0;color:var(--muted)}
 .primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:12px 24px;font-weight:700;font-size:1.1rem}
-.label{font-size:.8rem;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.label{font-size:.85rem;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.who{font-family:var(--display);font-size:1.2rem}
+.pic img{width:1em;height:1em;object-fit:cover;border-radius:.18em;vertical-align:middle}
 .now{background:var(--now);border:3px solid var(--now-line);border-radius:28px;padding:20px;display:grid;grid-template-columns:1fr auto;gap:12px 16px;align-items:center}
 .now .pic{font-size:5rem;line-height:1}
-.now h2{font-family:var(--display);font-size:2.2rem;margin:0;text-wrap:balance;line-height:1.25}
+.now h2{font-family:var(--display);font-size:2.2rem;margin:0;text-wrap:balance;line-height:1.4}
 .range{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
 .disk{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--timer) calc(var(--p)*1turn),var(--surface) 0);border:4px solid var(--ink);display:grid;place-items:center;max-width:100%}
 .disk span{background:var(--surface);border-radius:999px;padding:2px 10px;font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem}
-.done-btn{grid-column:1/-1;background:var(--accent);color:var(--accent-ink);border:0;border-radius:20px;padding:16px;font-size:1.5rem;font-family:var(--display)}
-.done-btn[aria-pressed="true"]{background:var(--done)}
+.done-btn{grid-column:1/-1;background:var(--accent);color:var(--accent-ink);border:0;border-radius:20px;padding:16px;font-size:1.5rem;font-family:var(--display);display:flex;gap:8px;align-items:center;justify-content:center}
+.done-btn[aria-pressed="true"]{background:var(--surface);color:var(--hanamaru);border:2px solid var(--hanamaru)}
+.done-btn svg{width:2.2rem;height:2.2rem}
+.extend{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.85rem;color:var(--muted)}
+.extend button{border:1px solid var(--now-line);background:var(--surface);border-radius:999px;padding:4px 12px;font-weight:700;color:var(--ink)}
 .next{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;gap:16px;align-items:center}
 .next .pic{font-size:2.6rem;line-height:1}
 .next b{font-size:1.3rem;font-family:var(--display);font-weight:500}
 .strip{display:flex;flex-direction:column;gap:8px;list-style:none;margin:0;padding:0}
-.strip li{display:grid;grid-template-columns:4.2rem 2.4rem 1fr auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.strip li{display:grid;grid-template-columns:3.6rem 2.4rem 1fr auto;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
 .strip .t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
-.strip .pic{font-size:1.6rem;text-align:center}
+.strip .pic{font-size:1.6rem;text-align:center;line-height:1}
 .strip .n{min-width:0;font-weight:700}
 .strip li.is-now{border:2px solid var(--now-line);background:var(--now)}
-.strip li.is-done .n,.strip li.is-past .n{color:var(--muted);text-decoration:line-through}
-.strip li.is-done .pic{opacity:.45}
-.chip{font-size:.75rem;border-radius:999px;padding:2px 10px;font-weight:700;border:1px solid var(--line);color:var(--muted)}
-.chip.ok{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.strip li.is-past:not(.is-done) .n{color:var(--muted)}
+.strip li.is-done .n{color:var(--muted)}
+.mark{border:1px solid var(--line);background:transparent;border-radius:999px;width:2.6rem;height:2.6rem;display:grid;place-items:center;padding:0;color:var(--muted);font-size:.75rem;font-weight:700}
+.mark svg{width:2.4rem;height:2.4rem}
+.mark[aria-pressed="true"]{border-color:transparent}
+.mute{font-size:.75rem;color:var(--muted)}
 .sample{font-size:.85rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:8px 12px}
+.hanamaru{color:var(--hanamaru)}
 /* settings */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .panel h3{margin:0;font-family:var(--display);font-weight:500;font-size:1.25rem}
 .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
-.field span{font-size:.8rem;color:var(--muted);font-weight:700}
-input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.field>span{font-size:.8rem;color:var(--muted);font-weight:700}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0;max-width:100%}
 input[type=time]{font-variant-numeric:tabular-nums}
-.task-edit{display:grid;grid-template-columns:4.2rem 1fr;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px}
-.task-edit .times{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.task-edit select{font-size:1.6rem;padding:4px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.days{display:flex;flex-wrap:wrap;gap:6px}
+.days button{width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-weight:700;padding:0}
+.days button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.task-edit{display:grid;grid-template-columns:4.6rem 1fr 1fr;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px}
+.task-edit .picker{grid-row:span 2;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.task-edit .picker .pic{font-size:2.4rem;text-align:center;line-height:1.2}
+.task-edit select{padding:4px;font-size:1.2rem}
+.task-edit .times{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.photo{font-size:.75rem;border:1px solid var(--line);border-radius:8px;text-align:center;padding:2px;color:var(--muted);cursor:pointer}
+.photo input{display:none}
 .del{border:1px solid var(--line);background:transparent;color:var(--danger);border-radius:10px;padding:6px 12px;margin-left:auto}
 .warn{color:var(--danger);font-size:.85rem;grid-column:1/-1}
 .ghost{border:2px dashed var(--accent);background:transparent;color:var(--accent);border-radius:14px;padding:12px;font-weight:700}
-.status{font-size:.8rem;color:var(--muted)}
-/* alert overlay */
+.status{font-size:.8rem;color:var(--muted);margin:0}
+/* overlays */
 .overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 88%,transparent);display:grid;place-items:center;padding:24px;z-index:20}
 .overlay .card{background:var(--now);border:4px solid var(--now-line);border-radius:32px;padding:32px 24px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center;max-width:420px;width:100%}
 .overlay .pic{font-size:6rem;line-height:1;animation:bob 1.6s ease-in-out infinite}
-.overlay p{white-space:pre-line;font-family:var(--display);font-size:1.8rem;margin:0;line-height:1.35;text-wrap:balance}
+.overlay p{font-family:var(--display);font-size:1.6rem;margin:0;line-height:1.45;text-wrap:balance;white-space:pre-line}
+.praise .card{background:var(--surface);border-color:var(--hanamaru)}
+.praise svg{width:min(60vw,240px);height:auto;color:var(--hanamaru);animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
 @keyframes bob{50%{transform:translateY(-8px)}}
-@media (prefers-reduced-motion:reduce){.overlay .pic{animation:none}}
-@media (max-width:420px){.now{grid-template-columns:1fr}.disk{justify-self:center}.now .pic{font-size:4rem}}
+@keyframes pop{from{transform:scale(.2) rotate(-40deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.overlay .pic,.praise svg{animation:none}}
+@media (max-width:420px){.now{grid-template-columns:1fr}.disk{justify-self:center}.now .pic{font-size:4rem}.task-edit{grid-template-columns:4.6rem 1fr}}
 </style>
 </head>
 <body>
@@ -101,261 +117,422 @@ input[type=time]{font-variant-numeric:tabular-nums}
       <div class="clock" id="clock">--:--</div>
       <div class="date" id="date"></div>
     </div>
-    <button class="iconbtn" id="modeBtn" type="button">おとなの せってい</button>
+    <button class="iconbtn" id="modeBtn" type="button"></button>
   </header>
 
   <section class="start" id="startBox">
-    <b>こえと おとを つかうには、さいしょに 1かい おしてください</b>
-    <p>ブラウザの きまりで、ボタンを おすまで おとが でません。この がめんを ひらいたままに すると、じかんに なったら こえで しらせます。</p>
-    <button class="primary" id="startBtn" type="button">はじめる</button>
+    <b id="startTitle"></b>
+    <p id="startText"></p>
+    <button class="primary" id="startBtn" type="button"></button>
   </section>
 
-  <main id="kidView" style="display:contents"></main>
-  <section id="setView" hidden style="display:contents"></section>
+  <main id="kidView" class="wrap" style="padding:0"></main>
+  <section id="setView" class="wrap" style="padding:0" hidden></section>
 </div>
 
 <div class="overlay" id="overlay" hidden role="alertdialog" aria-live="assertive">
   <div class="card">
     <div class="pic" id="ovPic"></div>
     <p id="ovText"></p>
-    <button class="primary" id="ovOk" type="button">わかった</button>
+    <button class="primary" id="ovOk" type="button">OK</button>
   </div>
+</div>
+<div class="overlay praise" id="praise" hidden aria-live="polite">
+  <div class="card"><div id="praiseMark"></div><p id="praiseText"></p></div>
 </div>
 
 <script>
 (() => {
-const ICONS = ["⏰","🛏️","🪥","🚽","👕","🍚","🍞","🥛","💊","🎒","🚌","🏫","✏️","📖","🧸","🎨","🎵","📺","🚶","🛝","🧩","🍪","🛁","🧼","🍽️","🌙","💤","🤗"];
-const today = () => { const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); };
+/* ---------- helpers ---------- */
+const ICONS = ["⏰","🛏️","🪥","🚽","👕","🧦","🍚","🍞","🥛","💊","🎒","🚌","🚗","🏫","✏️","📖","🧸","🎨","🎵","📺","🎮","🚶","🛝","🧩","🍪","🛁","🧼","🍽️","🧹","🛒","🏥","🌙","💤","🤗"];
+const WD = ["日","月","火","水","木","金","土"], WDK = ["にち","げつ","か","すい","もく","きん","ど"];
+const dayKey = (d=new Date()) => d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
 const uid = () => Math.random().toString(36).slice(2,9);
 const toMin = s => { const [h,m]=(s||"0:0").split(":").map(Number); return h*60+m; };
-const fmt = m => String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const fmt = m => { m=Math.max(0,Math.min(m,24*60-1)); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
 const nowMin = () => { const d=new Date(); return d.getHours()*60+d.getMinutes()+d.getSeconds()/60; };
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
 
-const DEFAULT_MSGS={pre:"あと {ふん}ふんごに、{なまえ}を はじめるよ",start:"いまから、{なまえ}を はじめるよ",warn:"あと {ふん}ふんで おわりだよ",end:"{なまえ}、おわりだよ"};
-function defaultMsgs(){ return {...DEFAULT_MSGS}; }
-function msg(kind,t,min){ const tpl=(state.msgs&&state.msgs[kind])||DEFAULT_MSGS[kind]; return tpl.replaceAll("{なまえ}",t.name||"よてい").replaceAll("{ふん}",min); }
-function sampleState(){
-  const t=(icon,name,start,end)=>({id:uid(),icon,name,start,end});
-  return {sample:true, wake:"06:30", wakeMsg:"おはよう！ おきる じかんだよ", preMin:5, warnMin:5, voice:true, msgs:defaultMsgs(),
-    tasks:[t("🚽","トイレ","06:35","06:45"),t("👕","きがえ","06:45","07:00"),t("🍚","あさごはん","07:00","07:30"),
-      t("🪥","はみがき","07:30","07:40"),t("🎒","がっこうの じゅんび","07:40","07:55"),t("🚌","いってきます","07:55","08:00"),
-      t("🧸","おうちで あそぶ","16:00","17:00"),t("🛁","おふろ","18:30","19:00"),t("🍽️","ばんごはん","19:00","19:30"),t("💤","ねる","20:30","21:00")],
-    done:{date:today(),ids:[]}};
+/* Text with readings: "{今日|きょう}の{予定|よてい}". Mode kana -> きょうのよてい, ruby -> 漢字+ふりがな, kanji -> 今日の予定 */
+let MODE="ruby";
+function tx(s,mode=MODE){
+  return esc(s).replace(/\{([^|}]+)\|([^}]+)\}/g,(_,k,r)=>mode==="kana"?r:mode==="ruby"?`<ruby>${k}<rt>${r}</rt></ruby>`:k);
 }
+const plain = (s,mode) => tx(s,mode).replace(/<rt>.*?<\/rt>/g,"").replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"');
+const say = s => plain(s,"kana");
+/* Task name: name (kanji) + yomi (reading). */
+function taskName(t,mode=MODE){
+  const n=t.name||t.yomi||"", y=t.yomi||"";
+  if(mode==="kana") return esc(y||n);
+  if(mode==="ruby"&&y&&y!==n) return `<ruby>${esc(n)}<rt>${esc(y)}</rt></ruby>`;
+  return esc(n);
+}
+const taskPlain = t => (MODE==="kana"?(t.yomi||t.name):(t.name||t.yomi))||"";
+const taskSpoken = t => t.yomi||t.name||"";
+const pic = t => t.img?`<img src="${t.img}" alt="">`:esc(t.icon||"🧩");
 
-let state = sampleState();
-try { const s=JSON.parse(localStorage.getItem("kyou-yotei")||"null"); if(s&&s.tasks) state=s; } catch(e){}
-if(!state.msgs) state.msgs=defaultMsgs(); if(state.preMin==null) state.preMin=5;
-let db=null, docRef=null, saveTimer=null, saveNote="この iPhoneに ほぞん";
-let audioOn=false, mode="kid", ac=null, wakeLock=null;
-const fired=new Set();
+/* Hanamaru: scalloped flower + spiral, drawn once as SVG */
+const HANAMARU = (() => {
+  const P=12, R=44, r=36; let d="";
+  for(let i=0;i<=P;i++){ const a=i/P*2*Math.PI-Math.PI/2, x=50+r*Math.cos(a), y=50+r*Math.sin(a);
+    if(i===0) d+=`M${x.toFixed(1)} ${y.toFixed(1)}`; else d+=` A${(R-r+6).toFixed(1)} ${(R-r+6).toFixed(1)} 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}`; }
+  let sp=""; for(let i=0;i<=120;i++){ const a=i/120*Math.PI*5.2, rr=4+i/120*24; const x=50+rr*Math.cos(a), y=50+rr*Math.sin(a); sp+=(i?" L":"M")+x.toFixed(1)+" "+y.toFixed(1); }
+  return `<svg viewBox="0 0 100 100" aria-label="はなまる" role="img" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/><path d="${sp}"/></svg>`;
+})();
 
-function sorted(){ return [...state.tasks].sort((a,b)=>toMin(a.start)-toMin(b.start)); }
-function ensureDay(){ if(state.done?.date!==today()){ state.done={date:today(),ids:[]}; fired.clear(); primeFired(); } }
+/* ---------- UI words ---------- */
+const W = {
+  settings:"おとなの {設定|せってい}", back:"こどもの {画面|がめん}へ",
+  startTitle:"{声|こえ}と {音|おと}を つかうには、さいしょに 1かい おしてください",
+  startText:"iPhoneの きまりで、ボタンを おすまで {音|おと}が でません。この {画面|がめん}を ひらいたままに すると、{時間|じかん}に なったら {声|こえ}で しらせます。",
+  startBtn:"はじめる",
+  now:"{今|いま}", next:"{次|つぎ}", today:"{今日|きょう}の {予定|よてい}",
+  sleeping:"おやすみ ちゅう", wakeAt:"おきる {時間|じかん}", wakeup:"おきる",
+  free:"じゆう {時間|じかん}", nextFrom:"{次|つぎ}は", from:"から", dayEnd:"{今日|きょう}の {予定|よてい}は おしまい",
+  left:"あと", min:"{分|ふん}", done:"できた！", noPlan:"{今日|きょう}は {予定|よてい}が ありません",
+  extend:"のばす", undoDay:"{今日|きょう}の {変更|へんこう}を もどす",
+  praise:"できたね！ はなまる！", ok:"わかった",
+};
 
-function save(){
-  try{ localStorage.setItem("kyou-yotei",JSON.stringify(state)); }catch(e){}
-  if(!docRef) return;
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(async()=>{
-    try{ await docRef.set(JSON.parse(JSON.stringify(state))); saveNote="アカウントに ほぞんしました"; }
-    catch(e){ saveNote="この たんまつに だけ ほぞん（"+(e.code||"error")+"）"; }
-    if(mode==="set") renderStatus();
-  },600);
+/* ---------- state ---------- */
+const DEFAULT_MSGS={pre:"あと {ふん}ふんごに、{なまえ}を はじめるよ",start:"いまから、{なまえ}を はじめるよ",warn:"あと {ふん}ふんで おわりだよ",end:"{なまえ}、おわりだよ"};
+const T=(icon,name,yomi,start,end)=>({id:uid(),icon,name,yomi,start,end,notify:true});
+function newChild(name="こども"){
+  return {id:uid(),name,textMode:"ruby",voice:true,preMin:5,warnMin:5,msgs:{...DEFAULT_MSGS},wakeMsg:"おはよう！ おきる じかんだよ",
+    patterns:[
+      {id:uid(),name:"学校の日",days:[1,2,3,4,5],wake:"06:30",tasks:[
+        T("🚽","トイレ","といれ","06:35","06:45"),T("👕","着替え","きがえ","06:45","07:00"),T("🍚","朝ごはん","あさごはん","07:00","07:30"),
+        T("🪥","歯みがき","はみがき","07:30","07:40"),T("🎒","学校の準備","がっこうの じゅんび","07:40","07:55"),T("🚌","いってきます","いってきます","07:55","08:00"),
+        T("🧸","おうちで遊ぶ","おうちで あそぶ","16:00","17:00"),T("🛁","お風呂","おふろ","18:30","19:00"),T("🍽️","晩ごはん","ばんごはん","19:00","19:30"),T("💤","寝る","ねる","20:30","21:00")]},
+      {id:uid(),name:"お休みの日",days:[0,6],wake:"07:30",tasks:[
+        T("🚽","トイレ","といれ","07:35","07:45"),T("🍚","朝ごはん","あさごはん","08:00","08:30"),T("🪥","歯みがき","はみがき","08:30","08:40"),
+        T("🚶","お散歩","おさんぽ","10:00","11:00"),T("🍽️","昼ごはん","ひるごはん","12:00","12:30"),T("🛁","お風呂","おふろ","18:30","19:00"),T("💤","寝る","ねる","20:30","21:00")]}],
+    override:null, day:{date:dayKey(),done:[],shifts:{}}};
+}
+function migrate(v1){
+  const c=newChild(); c.wakeMsg=v1.wakeMsg||c.wakeMsg; c.voice=v1.voice!==false; c.warnMin=v1.warnMin??5; c.preMin=v1.preMin??5;
+  if(v1.msgs) c.msgs={...DEFAULT_MSGS,...v1.msgs};
+  c.patterns[0].wake=v1.wake||c.patterns[0].wake; c.patterns[0].tasks=v1.tasks.map(t=>({notify:true,yomi:"",...t}));
+  return c;
+}
+let store;
+try{ store=JSON.parse(localStorage.getItem("kyou-yotei-v2")||"null"); }catch(e){}
+if(!store||!store.children?.length){
+  let v1=null; try{ v1=JSON.parse(localStorage.getItem("kyou-yotei")||"null"); }catch(e){}
+  const c=v1&&v1.tasks&&!v1.sample?migrate(v1):newChild();
+  store={version:2,sample:!(v1&&!v1.sample),current:c.id,children:[c]};
+}
+const child = () => store.children.find(c=>c.id===store.current)||store.children[0];
+function save(){ try{ localStorage.setItem("kyou-yotei-v2",JSON.stringify(store)); }catch(e){} }
+function touch(){ store.sample=false; save(); }
+
+/* today's pattern and effective tasks (pattern + today's delays) */
+function ensureDay(c=child()){ if(c.day?.date!==dayKey()){ c.day={date:dayKey(),done:[],shifts:{}}; if(c.override?.date!==dayKey()) c.override=null; fired.clear(); primeFired(); save(); } }
+function todayPattern(c=child()){
+  if(c.override?.date===dayKey()) return c.patterns.find(p=>p.id===c.override.pattern)||null;
+  const wd=new Date().getDay(); return c.patterns.find(p=>p.days.includes(wd))||null;
+}
+function todayTasks(c=child()){
+  const p=todayPattern(c); if(!p) return [];
+  return p.tasks.map(t=>({...t,...(c.day.shifts[t.id]||{})})).sort((a,b)=>toMin(a.start)-toMin(b.start));
 }
 
 /* ---------- sound & voice ---------- */
+let audioOn=false, ac=null, wakeLock=null, mode="kid", editPattern=null;
+const fired=new Set();
 function chime(){
-  if(!ac) return;
-  const t=ac.currentTime;
+  if(!ac) return; const t=ac.currentTime;
   [659,880,1047].forEach((f,i)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.type="sine"; o.frequency.value=f;
     g.gain.setValueAtTime(0,t+i*.22); g.gain.linearRampToValueAtTime(.25,t+i*.22+.03); g.gain.exponentialRampToValueAtTime(.001,t+i*.22+.6);
     o.connect(g).connect(ac.destination); o.start(t+i*.22); o.stop(t+i*.22+.7); });
 }
-function speak(text){
-  if(!state.voice||!("speechSynthesis" in window)) return;
-  const lines=Array.isArray(text)?text:[text];
+function speak(lines,delay=900){
+  if(!child().voice||!("speechSynthesis" in window)) return;
+  lines=Array.isArray(lines)?lines:[lines];
   try{ speechSynthesis.cancel(); const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith("ja"));
-    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(line); u.lang="ja-JP"; u.rate=.9; u.pitch=1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),900); }catch(e){}
+    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(line); u.lang="ja-JP"; u.rate=.9; u.pitch=1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),delay); }catch(e){}
 }
-function announce(icon,text){
-  chime(); speak(text);
-  document.getElementById("ovPic").textContent=icon;
-  document.getElementById("ovText").textContent=Array.isArray(text)?text.join("\n"):text;
+function announce(icon,shown,spoken){
+  chime(); speak(spoken);
+  document.getElementById("ovPic").innerHTML=icon;
+  document.getElementById("ovText").textContent=shown.join("\n");
   document.getElementById("overlay").hidden=false;
-  try{ if(window.Notification&&Notification.permission==="granted") new Notification(icon+" "+(Array.isArray(text)?text.join(" "):text)); }catch(e){}
-  if(navigator.vibrate) try{navigator.vibrate([300,150,300]);}catch(e){}
+  try{ if(window.Notification&&Notification.permission==="granted") new Notification(shown.join(" ")); }catch(e){}
 }
 document.getElementById("ovOk").onclick=()=>{ document.getElementById("overlay").hidden=true; };
+let praiseTimer;
+function praise(t){
+  chime(); speak((t?taskSpoken(t)+"、":"")+"できたね！ はなまる！",300);
+  document.getElementById("praiseMark").innerHTML=HANAMARU;
+  document.getElementById("praiseText").innerHTML=tx(W.praise);
+  const el=document.getElementById("praise"); el.hidden=false;
+  clearTimeout(praiseTimer); praiseTimer=setTimeout(()=>el.hidden=true,2600);
+}
+document.getElementById("praise").onclick=()=>{ document.getElementById("praise").hidden=true; };
 
 async function enableAudio(){
   try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); await ac.resume(); }catch(e){}
   audioOn=true; document.getElementById("startBox").hidden=true;
   try{ wakeLock=await navigator.wakeLock?.request("screen"); }catch(e){}
-  try{ if(window.Notification&&Notification.permission==="default") Notification.requestPermission().catch(()=>{}); }catch(e){}
   chime(); speak("きょうも がんばろうね");
 }
 document.getElementById("startBtn").onclick=enableAudio;
 document.addEventListener("visibilitychange",async()=>{ if(document.visibilityState==="visible"&&audioOn){ try{ wakeLock=await navigator.wakeLock?.request("screen"); }catch(e){} } });
 
-/* ---------- events ---------- */
+/* ---------- timed messages ---------- */
+function fill(tpl,t,min,forSpeech){ return tpl.replaceAll("{なまえ}",forSpeech?taskSpoken(t):taskPlain(t)).replaceAll("{ふん}",min); }
 function events(){
-  const ev=[{key:"wake",at:toMin(state.wake),icon:"⏰",text:state.wakeMsg||"おきる じかんだよ"}];
-  for(const t of state.tasks){
+  const c=child(), p=todayPattern(c); if(!p) return [];
+  const ev=[{key:"wake",kind:"wake",at:toMin(p.wake),icon:"⏰",t:null}];
+  for(const t of todayTasks(c)){
+    if(t.notify===false) continue;
     const s=toMin(t.start), e=toMin(t.end);
-    if(state.preMin>0) ev.push({key:t.id+"p",kind:"pre",at:s-state.preMin,icon:t.icon,text:msg("pre",t,state.preMin)});
-    ev.push({key:t.id+"s",kind:"start",at:s,icon:t.icon,text:msg("start",t)});
-    if(state.warnMin>0&&e-s>state.warnMin) ev.push({key:t.id+"w",kind:"warn",at:e-state.warnMin,icon:t.icon,text:msg("warn",t,state.warnMin)});
-    ev.push({key:t.id+"e",kind:"end",at:e,icon:t.icon,text:msg("end",t)});
+    if(c.preMin>0) ev.push({key:t.id+"p",kind:"pre",at:s-c.preMin,t,min:c.preMin});
+    ev.push({key:t.id+"s",kind:"start",at:s,t});
+    if(c.warnMin>0&&e-s>c.warnMin) ev.push({key:t.id+"w",kind:"warn",at:e-c.warnMin,t,min:c.warnMin});
+    ev.push({key:t.id+"e",kind:"end",at:e,t});
   }
   return ev;
 }
-function primeFired(){ const n=nowMin(); for(const e of events()) if(e.at<=Math.floor(n)-1) fired.add(today()+e.key); }
+function evText(e,forSpeech){ const c=child(); return e.kind==="wake"?c.wakeMsg:fill(c.msgs[e.kind]||DEFAULT_MSGS[e.kind],e.t,e.min,forSpeech); }
+const fkey = e => child().id+dayKey()+e.key+"@"+e.at;
+function primeFired(){ const n=Math.floor(nowMin()); for(const e of events()) if(e.at<n) fired.add(fkey(e)); }
 function checkEvents(){
   const n=Math.floor(nowMin());
-  // Several messages can land on one minute (one task ends as the next starts): read them all, endings first.
-  const ORDER={warn:0,end:1,pre:2,start:3};
-  const due=events().filter(e=>e.at===n&&!fired.has(today()+e.key)).sort((a,b)=>(ORDER[a.kind]??-1)-(ORDER[b.kind]??-1));
+  // One task ending as the next starts lands on one minute: read them all, endings first.
+  const ORDER={wake:-1,warn:0,end:1,pre:2,start:3};
+  const due=events().filter(e=>e.at===n&&!fired.has(fkey(e))).sort((a,b)=>ORDER[a.kind]-ORDER[b.kind]);
   if(!due.length) return;
-  due.forEach(e=>fired.add(today()+e.key));
-  announce(due[due.length-1].icon,due.map(e=>e.text));
+  due.forEach(e=>fired.add(fkey(e)));
+  const last=due[due.length-1];
+  announce(last.t?pic(last.t):"⏰",due.map(e=>evText(e,false)),due.map(e=>evText(e,true)));
 }
 
 /* ---------- child view ---------- */
 const kid=document.getElementById("kidView");
 function renderKid(){
-  ensureDay();
-  const n=nowMin(), list=sorted(), doneIds=state.done.ids;
+  const c=child(); ensureDay(c); MODE=c.textMode;
+  const n=nowMin(), p=todayPattern(c), list=todayTasks(c), done=c.day.done;
   const cur=list.find(t=>toMin(t.start)<=n&&n<toMin(t.end));
   const nxt=list.find(t=>toMin(t.start)>n);
   let h="";
-  if(state.sample) h+=`<div class="sample">いまは れいの よていが はいっています。「おとなの せってい」で じぶんの よていに かえてください。</div>`;
-  if(cur){
-    const s=toMin(cur.start),e=toMin(cur.end),left=Math.max(0,e-n),p=left/(e-s);
-    const isDone=doneIds.includes(cur.id);
-    h+=`<div class="label">いま</div><section class="now">
-      <div><div class="pic" aria-hidden="true">${cur.icon}</div><h2>${esc(cur.name)}</h2><div class="range">${cur.start} 〜 ${cur.end}</div></div>
-      <div class="disk" style="--p:${p.toFixed(4)}" role="img" aria-label="のこり ${Math.ceil(left)}ふん"><span>あと ${Math.ceil(left)}ふん</span></div>
-      <button class="done-btn" data-done="${cur.id}" aria-pressed="${isDone}">${isDone?"できた！ ◎":"できた！"}</button></section>`;
-  } else if(n<toMin(state.wake)||(!nxt&&list.length&&n>=toMin(list[list.length-1].end)&&n>20*60)){
-    h+=`<div class="label">いま</div><section class="now"><div><div class="pic">🌙</div><h2>おやすみ ちゅう</h2><div class="range">おきる じかん ${state.wake}</div></div></section>`;
+  if(store.sample) h+=`<div class="sample">いまは れいの よていが はいっています。「おとなの せってい」で じぶんの よていに かえてください。</div>`;
+  if(store.children.length>1||c.name!=="こども") h+=`<div class="who">${esc(c.name)}さんの ${tx(W.today)}</div>`;
+  h+=`<div class="label">${tx(W.now)}</div>`;
+  if(!p){
+    h+=`<section class="now"><div><div class="pic">🤗</div><h2>${tx(W.noPlan)}</h2></div></section>`;
+  } else if(cur){
+    const s=toMin(cur.start),e=toMin(cur.end),left=Math.max(0,e-n),pr=left/(e-s), isDone=done.includes(cur.id);
+    h+=`<section class="now">
+      <div><div class="pic" aria-hidden="true">${pic(cur)}</div><h2>${taskName(cur)}</h2><div class="range">${cur.start} 〜 ${cur.end}</div></div>
+      <div class="disk" style="--p:${pr.toFixed(4)}" role="img" aria-label="${Math.ceil(left)}"><span>${tx(W.left)} ${Math.ceil(left)}${tx(W.min)}</span></div>
+      <button class="done-btn" data-done="${cur.id}" aria-pressed="${isDone}">${isDone?HANAMARU:""}${tx(W.done)}</button>
+      <div class="extend"><span>${tx(W.extend)}</span>${[5,10,15].map(m=>`<button type="button" data-extend="${m}">＋${m}${tx(W.min)}</button>`).join("")}
+        ${Object.keys(c.day.shifts).length?`<button type="button" data-undo>${tx(W.undoDay)}</button>`:""}</div></section>`;
+  } else if(n<toMin(p.wake)||(!nxt&&list.length&&n>=toMin(list[list.length-1].end)&&n>=20*60)){
+    h+=`<section class="now"><div><div class="pic">🌙</div><h2>${tx(W.sleeping)}</h2><div class="range">${tx(W.wakeAt)} ${p.wake}</div></div></section>`;
   } else {
-    h+=`<div class="label">いま</div><section class="now"><div><div class="pic">🤗</div><h2>じゆう じかん</h2><div class="range">${nxt?"つぎは "+nxt.start+" から":"きょうの よていは おしまい"}</div></div></section>`;
+    h+=`<section class="now"><div><div class="pic">🤗</div><h2>${tx(W.free)}</h2><div class="range">${nxt?tx(W.nextFrom)+" "+nxt.start+" "+tx(W.from):tx(W.dayEnd)}</div></div></section>`;
   }
-  if(nxt) h+=`<div class="label">つぎ</div><section class="next"><div class="pic" aria-hidden="true">${nxt.icon}</div><div><b>${esc(nxt.name)}</b><div class="range">${nxt.start} から（あと ${Math.ceil(toMin(nxt.start)-n)}ふん）</div></div></section>`;
-  h+=`<div class="label">きょうの よてい（${doneIds.length}/${list.length} できた）</div><ul class="strip">
-    <li class="${n>=toMin(state.wake)?"is-past":""}"><span class="t">${state.wake}</span><span class="pic">⏰</span><span class="n">おきる</span><span></span></li>`;
-  for(const t of list){
-    const d=doneIds.includes(t.id), s=toMin(t.start), e=toMin(t.end);
-    const cls=d?"is-done":(s<=n&&n<e?"is-now":(n>=e?"is-past":""));
-    h+=`<li class="${cls}"><span class="t">${t.start}</span><span class="pic" aria-hidden="true">${t.icon}</span><span class="n">${esc(t.name)}</span>
-      <button class="chip ${d?"ok":""}" data-done="${t.id}" aria-pressed="${d}">${d?"できた":"まだ"}</button></li>`;
+  if(nxt) h+=`<div class="label">${tx(W.next)}</div><section class="next"><div class="pic" aria-hidden="true">${pic(nxt)}</div><div><b>${taskName(nxt)}</b><div class="range">${nxt.start} ${tx(W.from)}（${tx(W.left)} ${Math.ceil(toMin(nxt.start)-n)}${tx(W.min)}）</div></div></section>`;
+  if(p){
+    h+=`<div class="label">${tx(W.today)}（${esc(plain(p.name))}）</div><ul class="strip">
+      <li class="${n>=toMin(p.wake)?"is-past":""}"><span class="t">${p.wake}</span><span class="pic">⏰</span><span class="n">${tx(W.wakeup)}</span><span></span></li>`;
+    for(const t of list){
+      const d=done.includes(t.id), s=toMin(t.start), e=toMin(t.end);
+      const cls=[d?"is-done":"", s<=n&&n<e?"is-now":"", n>=e?"is-past":""].join(" ");
+      h+=`<li class="${cls}"><span class="t">${t.start}</span><span class="pic" aria-hidden="true">${pic(t)}</span><span class="n">${taskName(t)}${t.notify===false?` <span class="mute">🔕</span>`:""}</span>
+        <button class="mark hanamaru" data-done="${t.id}" aria-pressed="${d}" aria-label="できた">${d?HANAMARU:""}</button></li>`;
+    }
+    h+=`</ul>`;
   }
-  h+=`</ul>`;
   kid.innerHTML=h;
 }
+function extendCurrent(m){
+  const c=child(), list=todayTasks(c), n=nowMin();
+  const cur=list.find(t=>toMin(t.start)<=n&&n<toMin(t.end)); if(!cur) return;
+  const oldEnd=toMin(cur.end);
+  for(const t of list){
+    if(t.id===cur.id) c.day.shifts[t.id]={start:t.start,end:fmt(oldEnd+m)};
+    else if(toMin(t.start)>=oldEnd) c.day.shifts[t.id]={start:fmt(toMin(t.start)+m),end:fmt(toMin(t.end)+m)};
+  }
+  save(); chime(); speak(taskSpoken(cur)+"を "+m+"ふん のばすよ",200); renderKid();
+}
 kid.addEventListener("click",ev=>{
+  const ex=ev.target.closest("[data-extend]"); if(ex){ extendCurrent(+ex.dataset.extend); return; }
+  if(ev.target.closest("[data-undo]")){ child().day.shifts={}; save(); renderKid(); return; }
   const b=ev.target.closest("[data-done]"); if(!b) return;
-  const id=b.dataset.done, ids=state.done.ids, i=ids.indexOf(id);
-  if(i<0){ ids.push(id); chime(); const t=state.tasks.find(t=>t.id===id); if(t) speak(t.name+" できたね。 すごい！"); } else ids.splice(i,1);
+  const c=child(), id=b.dataset.done, ids=c.day.done, i=ids.indexOf(id);
+  if(i<0){ ids.push(id); praise(todayTasks(c).find(t=>t.id===id)); } else ids.splice(i,1);
   save(); renderKid();
 });
 
 /* ---------- settings view ---------- */
 const setv=document.getElementById("setView");
-function iconSelect(id,val){ return `<select data-f="icon" data-id="${id}" aria-label="えらぶ え">${ICONS.map(i=>`<option ${i===val?"selected":""}>${i}</option>`).join("")}</select>`; }
 function renderSet(){
-  const list=sorted();
-  let h=`<section class="panel"><h3>おきる じかん</h3>
-    <div class="row"><label class="field"><span>じかん</span><input type="time" id="wake" value="${state.wake}"></label>
-    <label class="field" style="flex:1"><span>こえの メッセージ</span><input id="wakeMsg" value="${esc(state.wakeMsg)}"></label></div></section>
+  const c=child(); MODE=c.textMode;
+  if(!c.patterns.find(p=>p.id===editPattern)) editPattern=(todayPattern(c)||c.patterns[0]).id;
+  const p=c.patterns.find(p=>p.id===editPattern);
+  const tp=todayPattern(c);
+  let h=`<section class="panel"><h3>こども</h3>
+    <div class="row">${store.children.length>1?`<label class="field"><span>えらぶ</span><select id="childSel">${store.children.map(k=>`<option value="${k.id}" ${k.id===c.id?"selected":""}>${esc(k.name)}</option>`).join("")}</select></label>`:""}
+      <label class="field"><span>よびかた（ニックネーム）</span><input id="childName" value="${esc(c.name)}"></label></div>
+    <div class="row"><label class="field"><span>もじの かきかた</span><select id="textMode">
+      ${[["kana","ひらがなだけ"],["ruby","漢字＋ふりがな"],["kanji","漢字"]].map(([v,l])=>`<option value="${v}" ${v===c.textMode?"selected":""}>${l}</option>`).join("")}</select></label>
+      <span class="status">れい：${tx(W.today,c.textMode)}</span></div>
+    <div class="row"><button class="iconbtn" id="addChild" type="button" ${store.children.length>=10?"disabled":""}>＋ こどもを ふやす</button>
+      ${store.children.length>1?`<button class="del" id="delChild" type="button" style="margin:0">この こどもを けす</button>`:""}</div>
+    <div id="confirmChild" hidden class="row"><span>${esc(c.name)}さんの よていを ぜんぶ けしますか？</span><button class="del" id="yesChild" type="button" style="margin:0">けす</button><button class="iconbtn" id="noChild" type="button">やめる</button></div>
+  </section>
+
   <section class="panel"><h3>こえと おしらせ</h3>
-    <div class="row"><label class="row"><input type="checkbox" id="voice" ${state.voice?"checked":""}> こえで よみあげる</label>
-    <label class="field"><span>はじまる まえに しらせる</span><select id="preMin">${[0,1,3,5,10,15].map(m=>`<option value="${m}" ${m==state.preMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label>
-    <label class="field"><span>おわる まえに しらせる</span><select id="warnMin">${[0,1,3,5,10].map(m=>`<option value="${m}" ${m==state.warnMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label>
-    <button class="iconbtn" id="testVoice" type="button">こえを ためす</button></div>
-    <p class="status">ことばは かえられます。{なまえ} に よていの なまえ、{ふん} に なんぷんかが はいります。</p>
-    ${[["pre","はじまる まえ"],["start","はじまり"],["warn","おわる まえ"],["end","おわり"]].map(([k,l])=>`<label class="field"><span>${l}</span><input data-msg="${k}" value="${esc(state.msgs[k])}"></label>`).join("")}
-    <button class="iconbtn" id="resetMsgs" type="button" style="align-self:flex-start">ことばを もとに もどす</button></section>
-  <section class="panel"><h3>よてい（${list.length}こ）</h3>`;
-  let prevEnd=toMin(state.wake);
+    <div class="row"><label class="row"><input type="checkbox" id="voice" ${c.voice?"checked":""}> こえで よみあげる</label></div>
+    <div class="row"><label class="field"><span>はじまる まえに しらせる</span><select id="preMin">${[0,1,3,5,10,15].map(m=>`<option value="${m}" ${m==c.preMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label>
+    <label class="field"><span>おわる まえに しらせる</span><select id="warnMin">${[0,1,3,5,10].map(m=>`<option value="${m}" ${m==c.warnMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label></div>
+    <p class="status">ことばは こどもごとに かえられます。{なまえ} に よていの なまえ、{ふん} に なんぷんかが はいります。</p>
+    <label class="field"><span>おきる とき</span><input id="wakeMsg" value="${esc(c.wakeMsg)}"></label>
+    ${[["pre","はじまる まえ"],["start","はじまり"],["warn","おわる まえ"],["end","おわり"]].map(([k,l])=>`<label class="field"><span>${l}</span><input data-msg="${k}" value="${esc(c.msgs[k])}"></label>`).join("")}
+    <div class="row"><button class="iconbtn" id="testVoice" type="button">こえを ためす</button><button class="iconbtn" id="resetMsgs" type="button">ことばを もとに もどす</button></div>
+  </section>
+
+  <section class="panel"><h3>よていの パターン</h3>
+    <div class="tabs">${c.patterns.map(q=>`<button class="iconbtn" type="button" data-pat="${q.id}" aria-pressed="${q.id===p.id}">${esc(q.name)}</button>`).join("")}
+      <button class="iconbtn" type="button" id="addPat">＋ パターン</button></div>
+    <div class="row"><label class="field"><span>きょう つかう パターン</span><select id="override">
+      <option value="">ようびで きめる（${tp&&!c.override?esc(tp.name):"—"}）</option>
+      ${c.patterns.map(q=>`<option value="${q.id}" ${c.override?.date===dayKey()&&c.override.pattern===q.id?"selected":""}>きょうだけ「${esc(q.name)}」</option>`).join("")}</select></label></div>
+  </section>
+
+  <section class="panel"><h3>「${esc(p.name)}」の よてい</h3>
+    <div class="row"><label class="field"><span>パターンの なまえ</span><input id="patName" value="${esc(p.name)}"></label>
+      <label class="field"><span>おきる じかん</span><input type="time" id="patWake" value="${p.wake}"></label></div>
+    <div class="field"><span>つかう ようび（いくつでも えらべます）</span><div class="days">${WD.map((d,i)=>`<button type="button" data-day="${i}" aria-pressed="${p.days.includes(i)}">${d}</button>`).join("")}</div></div>
+    <div class="row"><button class="iconbtn" id="copyPat" type="button">この パターンを コピー</button>
+      ${c.patterns.length>1?`<button class="del" id="delPat" type="button" style="margin:0">この パターンを けす</button>`:""}</div>
+    <div id="confirmPat" hidden class="row"><span>「${esc(p.name)}」を けしますか？</span><button class="del" id="yesPat" type="button" style="margin:0">けす</button><button class="iconbtn" id="noPat" type="button">やめる</button></div>`;
+  const list=[...p.tasks].sort((a,b)=>toMin(a.start)-toMin(b.start));
+  let prevEnd=toMin(p.wake);
   for(const t of list){
     const s=toMin(t.start),e=toMin(t.end);
     const warn=e<=s?"おわりは はじまりより あとに してください":(s<prevEnd?"まえの よていと じかんが かさなっています":"");
     prevEnd=Math.max(prevEnd,e);
-    h+=`<div class="task-edit">${iconSelect(t.id,t.icon)}
-      <label class="field"><span>なまえ</span><input data-f="name" data-id="${t.id}" value="${esc(t.name)}"></label>
+    h+=`<div class="task-edit">
+      <div class="picker"><div class="pic">${pic(t)}</div>
+        <select data-f="icon" data-id="${t.id}" aria-label="え">${t.img?`<option selected value="">しゃしん</option>`:""}${ICONS.map(i=>`<option ${!t.img&&i===t.icon?"selected":""}>${i}</option>`).join("")}</select>
+        <label class="photo">しゃしん<input type="file" accept="image/*" data-photo="${t.id}"></label></div>
+      <label class="field"><span>なまえ（漢字）</span><input data-f="name" data-id="${t.id}" value="${esc(t.name)}"></label>
+      <label class="field"><span>よみ（ひらがな）</span><input data-f="yomi" data-id="${t.id}" value="${esc(t.yomi)}"></label>
       <div class="times"><label class="field"><span>はじまり</span><input type="time" data-f="start" data-id="${t.id}" value="${t.start}"></label>
-      <label class="field"><span>おわり</span><input type="time" data-f="end" data-id="${t.id}" value="${t.end}"></label>
-      <button class="del" data-del="${t.id}" type="button">けす</button></div>
+        <label class="field"><span>おわり</span><input type="time" data-f="end" data-id="${t.id}" value="${t.end}"></label>
+        <label class="row" style="padding-bottom:8px"><input type="checkbox" data-f="notify" data-id="${t.id}" ${t.notify!==false?"checked":""}> おしらせ</label>
+        <button class="del" data-del="${t.id}" type="button">けす</button></div>
       ${warn?`<div class="warn">${warn}</div>`:""}</div>`;
   }
   h+=`<button class="ghost" id="addBtn" type="button">＋ つぎの よていを ついか（まえの おわりから つづけて）</button>
-    <div class="row"><label class="field"><span>ついかする ながさ</span><select id="addLen">${[5,10,15,20,30,45,60].map(m=>`<option ${m===(state.addLen||15)?"selected":""} value="${m}">${m}ふん</option>`).join("")}</select></label></div>
+    <div class="row"><label class="field"><span>ついかする ながさ</span><select id="addLen">${[5,10,15,20,30,45,60].map(m=>`<option ${m===(store.addLen||15)?"selected":""} value="${m}">${m}ふん</option>`).join("")}</select></label></div>
   </section>
-  <section class="panel"><div class="row"><button class="iconbtn" id="clearDone" type="button">きょうの「できた」を リセット</button>
-    <button class="iconbtn" id="clearAll" type="button" style="color:var(--danger)">よていを ぜんぶ けす</button></div>
-    <div id="confirmBox" hidden class="row"><span>ほんとうに ぜんぶ けしますか？</span><button class="del" id="yesClear" type="button" style="margin:0">けす</button><button class="iconbtn" id="noClear" type="button">やめる</button></div>
-    <div class="status" id="status"></div></section>`;
-  setv.innerHTML=h; renderStatus();
+  <section class="panel"><div class="row"><button class="iconbtn" id="clearDone" type="button">きょうの はなまるを リセット</button></div>
+    <p class="status">よていは この iPhoneに ほぞんされます。</p></section>`;
+  setv.innerHTML=h;
 }
-function renderStatus(){ const s=document.getElementById("status"); if(s) s.textContent="ほぞん: "+saveNote; }
-function touch(){ state.sample=false; save(); }
-setv.addEventListener("change",ev=>{
-  const el=ev.target, id=el.dataset.id, f=el.dataset.f;
-  if(id){ const t=state.tasks.find(t=>t.id===id); if(t){ t[f]=el.value;
-      if(f==="start"&&toMin(t.end)<=toMin(t.start)) t.end=fmt(toMin(t.start)+15); } touch(); renderSet(); return; }
-  if(el.dataset.msg){ state.msgs[el.dataset.msg]=el.value||DEFAULT_MSGS[el.dataset.msg]; touch(); renderSet(); return; }
-  if(el.id==="wake") state.wake=el.value;
-  else if(el.id==="wakeMsg") state.wakeMsg=el.value;
-  else if(el.id==="voice") state.voice=el.checked;
-  else if(el.id==="warnMin") state.warnMin=+el.value;
-  else if(el.id==="preMin") state.preMin=+el.value;
-  else if(el.id==="addLen") state.addLen=+el.value;
-  touch(); renderSet();
-});
-setv.addEventListener("click",ev=>{
-  const el=ev.target;
-  if(el.dataset.del){ state.tasks=state.tasks.filter(t=>t.id!==el.dataset.del); touch(); renderSet(); }
-  else if(el.id==="addBtn"){
-    const list=sorted(), last=list.length?toMin(list[list.length-1].end):toMin(state.wake), len=state.addLen||15;
-    const t={id:uid(),icon:"🧩",name:"",start:fmt(last),end:fmt(Math.min(last+len,23*60+59))};
-    state.tasks.push(t); touch(); renderSet();
-    const inp=setv.querySelector(`input[data-f="name"][data-id="${t.id}"]`); if(inp){ inp.focus(); inp.scrollIntoView({block:"center"}); }
+function curPattern(){ return child().patterns.find(p=>p.id===editPattern); }
+function changed(){ fired.clear(); primeFired(); touch(); renderSet(); }
+async function readPhoto(file){
+  const url=URL.createObjectURL(file), img=new Image();
+  await new Promise((ok,ng)=>{ img.onload=ok; img.onerror=ng; img.src=url; });
+  const S=160, cv=document.createElement("canvas"); cv.width=cv.height=S;
+  const k=Math.max(S/img.width,S/img.height), w=img.width*k, h=img.height*k;
+  cv.getContext("2d").drawImage(img,(S-w)/2,(S-h)/2,w,h); URL.revokeObjectURL(url);
+  return cv.toDataURL("image/jpeg",.8);
+}
+setv.addEventListener("change",async ev=>{
+  const el=ev.target, c=child(), p=curPattern();
+  if(el.dataset.photo){ const f=el.files?.[0]; if(!f) return; const t=p.tasks.find(t=>t.id===el.dataset.photo);
+    try{ t.img=await readPhoto(f); }catch(e){} changed(); return; }
+  if(el.dataset.id){ const t=p.tasks.find(t=>t.id===el.dataset.id); if(!t) return; const f=el.dataset.f;
+    if(f==="notify") t.notify=el.checked;
+    else if(f==="icon"){ if(el.value){ t.icon=el.value; delete t.img; } }
+    else t[f]=el.value;
+    if(f==="start"&&toMin(t.end)<=toMin(t.start)) t.end=fmt(toMin(t.start)+15);
+    changed(); return; }
+  if(el.dataset.msg){ c.msgs[el.dataset.msg]=el.value||DEFAULT_MSGS[el.dataset.msg]; changed(); return; }
+  switch(el.id){
+    case "childSel": store.current=el.value; editPattern=null; ensureDay(); break;
+    case "childName": c.name=el.value||"こども"; break;
+    case "textMode": c.textMode=el.value; break;
+    case "voice": c.voice=el.checked; break;
+    case "preMin": c.preMin=+el.value; break;
+    case "warnMin": c.warnMin=+el.value; break;
+    case "wakeMsg": c.wakeMsg=el.value; break;
+    case "override": c.override=el.value?{date:dayKey(),pattern:el.value}:null; c.day.shifts={}; break;
+    case "patName": p.name=el.value||"パターン"; break;
+    case "patWake": p.wake=el.value; break;
+    case "addLen": store.addLen=+el.value; break;
+    default: return;
   }
-  else if(el.id==="testVoice"){ if(!audioOn) enableAudio(); const t=sorted()[0]||{name:"はみがき"};
-    chime(); speak([msg("pre",t,state.preMin||5),msg("start",t),msg("warn",t,state.warnMin||5),msg("end",t)]); }
-  else if(el.id==="resetMsgs"){ state.msgs=defaultMsgs(); touch(); renderSet(); }
-  else if(el.id==="clearDone"){ state.done={date:today(),ids:[]}; save(); el.textContent="リセットしました"; }
-  else if(el.id==="clearAll"){ document.getElementById("confirmBox").hidden=false; }
-  else if(el.id==="noClear"){ document.getElementById("confirmBox").hidden=true; }
-  else if(el.id==="yesClear"){ state.tasks=[]; touch(); renderSet(); }
+  changed();
+});
+const show=(id,v)=>{ const e=document.getElementById(id); if(e) e.hidden=!v; };
+setv.addEventListener("click",ev=>{
+  const el=ev.target.closest("button"); if(!el) return;
+  const c=child(), p=curPattern();
+  if(el.dataset.pat){ editPattern=el.dataset.pat; renderSet(); return; }
+  if(el.dataset.day){ const d=+el.dataset.day, i=p.days.indexOf(d);
+    if(i<0){ c.patterns.forEach(q=>{ q.days=q.days.filter(x=>x!==d); }); p.days.push(d); p.days.sort(); } else p.days.splice(i,1);
+    changed(); return; }
+  if(el.dataset.del){ p.tasks=p.tasks.filter(t=>t.id!==el.dataset.del); changed(); return; }
+  switch(el.id){
+    case "addBtn": {
+      const list=[...p.tasks].sort((a,b)=>toMin(a.start)-toMin(b.start)), last=list.length?toMin(list[list.length-1].end):toMin(p.wake), len=store.addLen||15;
+      const t={id:uid(),icon:"🧩",name:"",yomi:"",start:fmt(last),end:fmt(last+len),notify:true};
+      p.tasks.push(t); changed();
+      const inp=setv.querySelector(`input[data-f="name"][data-id="${t.id}"]`); if(inp){ inp.focus(); inp.scrollIntoView({block:"center"}); }
+      break; }
+    case "addPat": { const q={id:uid(),name:"あたらしい パターン",days:[],wake:"07:00",tasks:[]}; c.patterns.push(q); editPattern=q.id; changed(); break; }
+    case "copyPat": { const q=clone(p); q.id=uid(); q.name=p.name+"（コピー）"; q.days=[]; q.tasks.forEach(t=>t.id=uid()); c.patterns.push(q); editPattern=q.id; changed(); break; }
+    case "delPat": show("confirmPat",true); break;
+    case "noPat": show("confirmPat",false); break;
+    case "yesPat": c.patterns=c.patterns.filter(q=>q.id!==p.id); editPattern=null; changed(); break;
+    case "addChild": { const k=newChild("こども"+(store.children.length+1)); store.children.push(k); store.current=k.id; editPattern=null; changed(); break; }
+    case "delChild": show("confirmChild",true); break;
+    case "noChild": show("confirmChild",false); break;
+    case "yesChild": store.children=store.children.filter(k=>k.id!==c.id); store.current=store.children[0].id; editPattern=null; changed(); break;
+    case "testVoice": { if(!audioOn) enableAudio(); const t=p.tasks[0]||{name:"歯みがき",yomi:"はみがき"};
+      chime(); speak([c.wakeMsg,fill(c.msgs.pre,t,c.preMin||5,true),fill(c.msgs.start,t,0,true),fill(c.msgs.warn,t,c.warnMin||5,true),fill(c.msgs.end,t,0,true)]); break; }
+    case "resetMsgs": c.msgs={...DEFAULT_MSGS}; changed(); break;
+    case "clearDone": c.day.done=[]; save(); el.textContent="リセットしました"; break;
+  }
 });
 
+/* ---------- mode switch & labels ---------- */
+function labels(){
+  MODE=child().textMode;
+  document.getElementById("modeBtn").innerHTML=tx(mode==="kid"?W.settings:W.back);
+  document.getElementById("startTitle").innerHTML=tx(W.startTitle);
+  document.getElementById("startText").innerHTML=tx(W.startText);
+  document.getElementById("startBtn").innerHTML=tx(W.startBtn);
+  document.getElementById("ovOk").innerHTML=tx(W.ok);
+}
 document.getElementById("modeBtn").onclick=()=>{
   mode=mode==="kid"?"set":"kid";
-  document.getElementById("modeBtn").textContent=mode==="kid"?"おとなの せってい":"こどもの がめんへ";
   kid.hidden=mode!=="kid"; setv.hidden=mode!=="set";
-  kid.style.display=mode==="kid"?"contents":"none"; setv.style.display=mode==="set"?"contents":"none";
-  mode==="kid"?renderKid():renderSet();
+  labels(); mode==="kid"?renderKid():renderSet(); window.scrollTo(0,0);
 };
 
-function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-
 /* ---------- clock loop ---------- */
-const W=["にち","げつ","か","すい","もく","きん","ど"];
-let lastMinute=-1;
+let lastMinute=-1, lastMode="";
 function tick(){
-  const d=new Date();
+  const d=new Date(), c=child();
   document.getElementById("clock").textContent=fmt(d.getHours()*60+d.getMinutes());
-  document.getElementById("date").textContent=`${d.getMonth()+1}がつ ${d.getDate()}にち（${W[d.getDay()]}ようび）`;
+  document.getElementById("date").innerHTML=c.textMode==="kana"?`${d.getMonth()+1}がつ ${d.getDate()}にち（${WDK[d.getDay()]}ようび）`:tx(`${d.getMonth()+1}{月|がつ} ${d.getDate()}{日|にち}（{${WD[d.getDay()]}|${WDK[d.getDay()]}}）`,c.textMode);
   checkEvents();
   const m=d.getHours()*60+d.getMinutes();
+  if(lastMode!==c.textMode){ lastMode=c.textMode; labels(); }
   if(mode==="kid"&&(m!==lastMinute||d.getSeconds()%15===0)){ lastMinute=m; renderKid(); }
 }
-primeFired(); tick(); setInterval(tick,1000);
+ensureDay(); primeFired(); labels(); tick(); setInterval(tick,1000);
 
-/* ---------- offline / home-screen ---------- */
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
