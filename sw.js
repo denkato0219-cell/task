@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app, and showing notifications sent by the server.
-const CACHE = "kyou-yotei-v3";
+const CACHE = "kyou-yotei-v4";
 const FILES = ["./", "index.html", "config.js", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -11,7 +11,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== self.location.origin) return;
   // network first so updates arrive; cache when offline
-  e.respondWith(fetch(e.request).then(r => {
+  e.respondWith(fetch(e.request, { cache: "no-cache" }).then(r => {
     const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r;
   }).catch(() => caches.match(e.request)));
 });
