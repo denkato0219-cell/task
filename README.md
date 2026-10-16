@@ -27,15 +27,29 @@
 3. 数分後、`https://denkato0219-cell.github.io/task/` で開けます
 
 ### 2. Cloudflare のアカウントを作る（無料）
-1. https://dash.cloudflare.com/sign-up で登録
-2. 左のメニュー **Workers & Pages** を一度開く（初回に `xxxx.workers.dev` のサブドメイン名を決める画面が出たら、好きな名前で登録）
-3. 画面右側などに出ている **Account ID** をメモ（Workers & Pages の画面、または アカウントのホームにあります）
+画面を日本語にしている前提で書いています。Cloudflareは画面の言葉をときどき変えるので、少し違うときは（　）内の英語名も手がかりにしてください。
+
+1. https://dash.cloudflare.com/sign-up でメールアドレスとパスワードを入れて登録し、届いたメールで確認する
+2. 左のメニューの **「コンピューティング（Workers）」→「Workers & Pages」** を一度開く
+   - 初めて開くと、`○○○.workers.dev` の **サブドメイン** を決める画面が出ます。好きな英数字（例：事業所名のローマ字）を入れて登録してください
+   - この画面が出ないまま進むと、あとで手順5が「サーバーのURLが見つかりません」で止まります
+3. **アカウント ID** をコピーしてメモする
+   - 「Workers & Pages」の画面の右側に「アカウント ID（Account ID）」があります
+   - 見つからないときは、ホーム画面（アカウント ホーム）のアカウント名の横の「︙」→「アカウント ID をコピー」
 
 ### 3. Cloudflare の APIトークンを作る
-1. 右上のアカウント → **My Profile → API Tokens → Create Token**
-2. **Edit Cloudflare Workers** のテンプレートを選ぶ
-3. Permissions に1行追加：**Account ／ D1 ／ Edit**
-4. Account Resources を自分のアカウントにして、トークンを作成し、表示された文字列をコピー
+GitHubがCloudflareにサーバーを置くための「合鍵」です。
+
+1. 右上の人のアイコン →「**マイ プロフィール**（My Profile）」
+2. 左の「**API トークン**（API Tokens）」→「**トークンを作成する**（Create Token）」
+3. テンプレートの一覧から「**Cloudflare Workers を編集する**（Edit Cloudflare Workers）」の「**テンプレートを使用する**（Use template）」
+4. 「**権限**（Permissions）」の下の「**さらに追加**（+ Add more）」で1行ふやし、左から
+   **「アカウント（Account）」／「D1」／「編集（Edit）」** を選ぶ
+   - これを忘れると、手順5で「データベースを作れませんでした」と出ます
+5. 「**アカウント リソース**（Account Resources）」は「含む（Include）」＋ 自分のアカウント
+6. 「**ゾーン リソース**（Zone Resources）」は「含む」＋「すべてのゾーン」のままでかまいません（ドメインを持っていなくても大丈夫です）
+7. 一番下の「**概要に進む**（Continue to summary）」→「**トークンを作成する**（Create Token）」
+8. 表示された長い文字列を「コピー」してメモする。**この画面を閉じると二度と表示されません**（なくしたら、同じ手順で作り直せば大丈夫です）
 
 ### 4. GitHub に鍵を登録する
 このリポジトリの **Settings → Secrets and variables → Actions → New repository secret** で、次の3つを登録します。
@@ -49,6 +63,16 @@
 ### 5. 通知サーバーを立ち上げる
 1. **Actions** タブ → **Deploy notification server** → **Run workflow**
 2. 緑のチェックが付けば完了です。サーバーのアドレスは自動で `config.js` に保存され、アプリに反映されます（数分かかります）
+3. Cloudflare の「Workers & Pages」に **kyou-yotei** が、「ストレージとデータベース（Storage & Databases）」→「D1」に **kyou-yotei** ができていれば成功です
+
+**赤い×が付いたとき**：Actions の実行結果を開くと、赤字で理由が出ます。
+
+| 出てくる文字 | なおし方 |
+|---|---|
+| Secrets に次を登録してください | 手順4の登録漏れ。名前のスペルも確認 |
+| データベースを作れませんでした | 手順3-4の「D1／編集」が抜けている。トークンを作り直して `CLOUDFLARE_API_TOKEN` を上書き |
+| サーバーのURLが見つかりません | 手順2-2のサブドメイン登録がまだ |
+| Authentication error / 10000 | トークンかアカウントIDの貼り間違い。前後に空白が入っていないか確認 |
 
 ---
 
