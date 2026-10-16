@@ -62,12 +62,15 @@ jobs:
         id: sub
         run: |
           API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain"
-          SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$API" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).result?.subdomain||"")}catch{console.log("")}})')
+          GET=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$API")
+          why() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);console.log((j.errors||[]).map(e=>e.code+" "+e.message).join(" / ")||"-")}catch{console.log(s.slice(0,200))}})'; }
+          echo "subdomain check: $(echo "$GET" | why)"
+          SUB=$(echo "$GET" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).result?.subdomain||"")}catch{console.log("")}})')
           if [ -z "$SUB" ]; then
             NEW="kyou-yotei-$(openssl rand -hex 3)"
             echo "workers.dev のサブドメインがないので $NEW を作ります"
             RES=$(curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "{\"subdomain\":\"$NEW\"}" "$API")
-            echo "$RES" | grep -q '"success":true' || { echo "$RES"; echo "::error::workers.dev のサブドメインを作れませんでした。Cloudflare の「Workers & Pages」を開いてサブドメインを登録してから、もう一度 Run workflow してください"; exit 1; }
+            echo "$RES" | grep -q '"success":true' || { echo "::error::Cloudflare の答え（確認）: $(echo "$GET" | why) ／（作成）: $(echo "$RES" | why)"; echo "::error::workers.dev のサブドメインを作れませんでした。Cloudflare の「Workers & Pages」を開いてサブドメインを登録してから、もう一度 Run workflow してください"; exit 1; }
             SUB="$NEW"
           fi
           echo "subdomain=$SUB" >> "$GITHUB_OUTPUT"
