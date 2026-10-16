@@ -380,11 +380,21 @@ function chime(){
     g.gain.setValueAtTime(0,t+i*.22); g.gain.linearRampToValueAtTime(.25,t+i*.22+.03); g.gain.exponentialRampToValueAtTime(.001,t+i*.22+.6);
     o.connect(g).connect(ac.destination); o.start(t+i*.22); o.stop(t+i*.22+.7); });
 }
+/* Voices differ per iPhone, so the chosen voice is kept on this device only (store.device.voiceName). */
+const jaVoices = () => { try{ return speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.replace("_","-").startsWith("ja")); }catch(e){ return []; } };
+const voiceQuality = v => /premium|プレミアム/i.test(v.name+v.voiceURI)?2:/enhanced|拡張/i.test(v.name+v.voiceURI)?1:0;
+function pickVoice(){
+  const vs=jaVoices(), want=store.device.voiceName;
+  return vs.find(v=>v.name===want) || [...vs].sort((a,b)=>voiceQuality(b)-voiceQuality(a))[0] || null;
+}
+function voiceLabel(v){ const q=voiceQuality(v); return v.name+(q===2?"（プレミアム）":q===1?"（かくちょう）":""); }
+try{ speechSynthesis.onvoiceschanged=()=>{ if(mode==="set") renderSet(); }; }catch(e){}
 function speak(lines,delay=900){
   if(!child().voice||!("speechSynthesis" in window)) return;
   lines=Array.isArray(lines)?lines:[lines];
-  try{ speechSynthesis.cancel(); const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith("ja"));
-    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(voiceFix(line)); u.lang="ja-JP"; u.rate=.9; u.pitch=1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),delay); }catch(e){}
+  const c=child();
+  try{ speechSynthesis.cancel(); const v=pickVoice();
+    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(voiceFix(line,c)); u.lang="ja-JP"; u.rate=c.rate||.9; u.pitch=c.pitch||1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),delay); }catch(e){}
 }
 function announce(icon,shown,spoken){
   chime(); speak(spoken);
@@ -539,6 +549,11 @@ function renderSet(){
 
   <section class="panel"><h3>こえと おしらせ</h3>
     <div class="row"><label class="row"><input type="checkbox" id="voice" ${c.voice?"checked":""}> こえで よみあげる</label></div>
+    <div class="row"><label class="field"><span>こえの しゅるい（この iPhone）</span><select id="voiceName">
+      ${jaVoices().length?jaVoices().map(v=>`<option value="${esc(v.name)}" ${pickVoice()?.name===v.name?"selected":""}>${esc(voiceLabel(v))}</option>`).join(""):`<option>ひょうじゅん</option>`}</select></label>
+      <label class="field"><span>はやさ</span><select id="rate">${[[.7,"ゆっくり"],[.8,"すこし ゆっくり"],[.9,"ふつう"],[1,"すこし はやい"]].map(([r,l])=>`<option value="${r}" ${(c.rate||.9)==r?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label class="field"><span>こえの たかさ</span><select id="pitch">${[[.9,"ひくめ"],[1,"ふつう"],[1.1,"すこし たかめ"],[1.3,"たかめ"]].map(([r,l])=>`<option value="${r}" ${(c.pitch||1.1)==r?"selected":""}>${l}</option>`).join("")}</select></label></div>
+    <p class="status">しぜんな こえを ふやすには：iPhoneの「設定」→「アクセシビリティ」→「読み上げコンテンツ」→「声」→「日本語」で、「拡張」や「プレミアム」の こえを ダウンロード してから、アプリを ひらきなおしてください。</p>
     <div class="row"><label class="field"><span>はじまる まえに しらせる</span><select id="preMin">${[0,1,3,5,10,15].map(m=>`<option value="${m}" ${m==c.preMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label>
     <label class="field"><span>おわる まえに しらせる</span><select id="warnMin">${[0,1,3,5,10].map(m=>`<option value="${m}" ${m==c.warnMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label></div>
     <p class="status">ことばは こどもごとに かえられます。{なまえ} に よていの なまえ、{ふん} に なんぷんかが はいります。</p>
@@ -621,6 +636,9 @@ setv.addEventListener("change",async ev=>{
     case "warnMin": c.warnMin=+el.value; break;
     case "wakeMsg": c.wakeMsg=el.value; break;
     case "voiceFixes": c.voiceFixes=el.value; break;
+    case "voiceName": store.device.voiceName=el.value; save(); speak("この こえで しらせるね",100); return;
+    case "rate": c.rate=+el.value; break;
+    case "pitch": c.pitch=+el.value; break;
     case "override": c.override=el.value?{date:dayKey(),pattern:el.value}:null; c.day.shifts={}; break;
     case "patName": p.name=el.value||"パターン"; break;
     case "patWake": p.wake=el.value; break;
