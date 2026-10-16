@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check secrets
         run: |
@@ -35,7 +35,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -58,13 +58,29 @@ jobs:
           sed -i "s/REPLACE_WITH_D1_ID/$ID/" wrangler.toml
           npx wrangler d1 execute kyou-yotei --remote --file=schema.sql
 
+      - name: Make sure the workers.dev address exists
+        id: sub
+        run: |
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain"
+          SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$API" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).result?.subdomain||"")}catch{console.log("")}})')
+          if [ -z "$SUB" ]; then
+            NEW="kyou-yotei-$(openssl rand -hex 3)"
+            echo "workers.dev のサブドメインがないので $NEW を作ります"
+            RES=$(curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "{\"subdomain\":\"$NEW\"}" "$API")
+            echo "$RES" | grep -q '"success":true' || { echo "$RES"; echo "::error::workers.dev のサブドメインを作れませんでした。Cloudflare の「Workers & Pages」を開いてサブドメインを登録してから、もう一度 Run workflow してください"; exit 1; }
+            SUB="$NEW"
+          fi
+          echo "subdomain=$SUB" >> "$GITHUB_OUTPUT"
+
       - name: Deploy
         id: deploy
         run: |
-          npx wrangler deploy | tee deploy.log
+          set -o pipefail
+          npx wrangler deploy 2>&1 | tee deploy.log || { echo "::error::サーバーの公開に失敗しました。上のログの ERROR の行を確認してください"; exit 1; }
           URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
-          [ -n "$URL" ] || { echo "::error::サーバーのURLが見つかりません。Cloudflare の Workers 画面で workers.dev のサブドメインを登録してください"; exit 1; }
+          [ -n "$URL" ] || URL="https://kyou-yotei.${{ steps.sub.outputs.subdomain }}.workers.dev"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "server: $URL"
 
       - name: Set office key
         run: printf '%s' "${{ secrets.ORG_KEY }}" | npx wrangler secret put ORG_KEY
