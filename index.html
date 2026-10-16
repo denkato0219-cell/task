@@ -175,7 +175,18 @@ function taskName(t,mode=MODE){
   return esc(n);
 }
 const taskPlain = t => (MODE==="kana"?(t.yomi||t.name):(t.name||t.yomi))||"";
-const taskSpoken = t => t.yomi||t.name||"";
+const taskSpoken = t => t.name||t.yomi||""; // kanji reads more reliably than kana for the speech voice
+/* Speech fixes: the voice reads "は" after a space as the particle "wa" (はじめる → わじめる).
+   Spaces are removed and each child's "よみかたの なおし" (かきかた=よませかた) is applied before speaking. */
+const DEFAULT_FIXES="はじめる=始める\nはじめよう=始めよう\nはなまる=花丸\nはみがき=歯みがき";
+function voiceFix(line,c=child()){
+  let s=String(line).replace(/[ 　]+/g,"");
+  for(const row of String(c.voiceFixes??DEFAULT_FIXES).split(/\n/)){
+    const i=row.indexOf("="); if(i<1) continue;
+    const from=row.slice(0,i).trim(), to=row.slice(i+1).trim(); if(from) s=s.split(from).join(to);
+  }
+  return s;
+}
 /* Clock style per child: "ampm" (default, 午前 7:30) or "24" (19:30) */
 function hm(s,c=child()){
   if(c.clock==="24") return s;
@@ -373,7 +384,7 @@ function speak(lines,delay=900){
   if(!child().voice||!("speechSynthesis" in window)) return;
   lines=Array.isArray(lines)?lines:[lines];
   try{ speechSynthesis.cancel(); const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith("ja"));
-    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(line); u.lang="ja-JP"; u.rate=.9; u.pitch=1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),delay); }catch(e){}
+    setTimeout(()=>lines.forEach(line=>{ const u=new SpeechSynthesisUtterance(voiceFix(line)); u.lang="ja-JP"; u.rate=.9; u.pitch=1.1; if(v) u.voice=v; speechSynthesis.speak(u); }),delay); }catch(e){}
 }
 function announce(icon,shown,spoken){
   chime(); speak(spoken);
@@ -531,6 +542,9 @@ function renderSet(){
     <div class="row"><label class="field"><span>はじまる まえに しらせる</span><select id="preMin">${[0,1,3,5,10,15].map(m=>`<option value="${m}" ${m==c.preMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label>
     <label class="field"><span>おわる まえに しらせる</span><select id="warnMin">${[0,1,3,5,10].map(m=>`<option value="${m}" ${m==c.warnMin?"selected":""}>${m?m+"ふん まえ":"しらせない"}</option>`).join("")}</select></label></div>
     <p class="status">ことばは こどもごとに かえられます。{なまえ} に よていの なまえ、{ふん} に なんぷんかが はいります。</p>
+    <label class="field"><span>よみかたの なおし（1ぎょうに 1つ「かきかた=よませかた」）</span>
+      <textarea id="voiceFixes" rows="4" style="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px">${esc(c.voiceFixes??DEFAULT_FIXES)}</textarea></label>
+    <p class="status">へんな よみかたに なる ことばを 足してください。れい：「わみがき」と よまれたら「はみがき=歯みがき」。</p>
     <label class="field"><span>おきる とき</span><input id="wakeMsg" value="${esc(c.wakeMsg)}"></label>
     ${[["pre","はじまる まえ"],["start","はじまり"],["warn","おわる まえ"],["end","おわり"]].map(([k,l])=>`<label class="field"><span>${l}</span><input data-msg="${k}" value="${esc(c.msgs[k])}"></label>`).join("")}
     <div class="row"><button class="iconbtn" id="testVoice" type="button">こえを ためす</button><button class="iconbtn" id="resetMsgs" type="button">ことばを もとに もどす</button></div>
@@ -606,6 +620,7 @@ setv.addEventListener("change",async ev=>{
     case "preMin": c.preMin=+el.value; break;
     case "warnMin": c.warnMin=+el.value; break;
     case "wakeMsg": c.wakeMsg=el.value; break;
+    case "voiceFixes": c.voiceFixes=el.value; break;
     case "override": c.override=el.value?{date:dayKey(),pattern:el.value}:null; c.day.shifts={}; break;
     case "patName": p.name=el.value||"パターン"; break;
     case "patWake": p.wake=el.value; break;
