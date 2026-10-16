@@ -1,0 +1,17 @@
+name = "kyou-yotei"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+# Shown to Apple/Google push services as the sender contact. The app's own URL is fine.
+PUSH_SUBJECT = "https://denkato0219-cell.github.io/task/"
+# Origin allowed to call the API from a browser ("*" allows any).
+ALLOWED_ORIGIN = "https://denkato0219-cell.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kyou-yotei"
+database_id = "REPLACE_WITH_D1_ID"

@@ -97,6 +97,8 @@ input[type=time]{font-variant-numeric:tabular-nums}
 .warn{color:var(--danger);font-size:.85rem;grid-column:1/-1}
 .ghost{border:2px dashed var(--accent);background:transparent;color:var(--accent);border-radius:14px;padding:12px;font-weight:700}
 .status{font-size:.8rem;color:var(--muted);margin:0}
+.code{font-family:var(--display);font-size:1.6rem;letter-spacing:.08em;font-variant-numeric:tabular-nums;user-select:all}
+.note{font-size:.85rem;background:var(--now);border-radius:10px;padding:8px 12px;margin:0}
 /* overlays */
 .overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 88%,transparent);display:grid;place-items:center;padding:24px;z-index:20}
 .overlay .card{background:var(--now);border:4px solid var(--now-line);border-radius:32px;padding:32px 24px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center;max-width:420px;width:100%}
@@ -141,6 +143,7 @@ input[type=time]{font-variant-numeric:tabular-nums}
   <div class="card"><div id="praiseMark"></div><p id="praiseText"></p></div>
 </div>
 
+<script src="config.js"></script>
 <script>
 (() => {
 /* ---------- helpers ---------- */
@@ -225,7 +228,98 @@ if(!store||!store.children?.length){
 }
 const child = () => store.children.find(c=>c.id===store.current)||store.children[0];
 function save(){ try{ localStorage.setItem("kyou-yotei-v2",JSON.stringify(store)); }catch(e){} }
-function touch(){ store.sample=false; save(); }
+function touch(){ store.sample=false; dirty(child()); }
+function dirty(c){ c.updatedAt=Date.now(); save(); syncSoon(c); }
+
+/* ---------- notification server (config.js) ---------- */
+const SERVER=(window.KYOU_CONFIG&&window.KYOU_CONFIG.server||"").replace(/\/+$/,"");
+store.device=store.device||{orgKey:"",push:{}};
+let netNote="";
+const fmtCode = c => c?c.slice(0,5)+"-"+c.slice(5):"";
+const normCode = s => String(s||"").toUpperCase().replace(/[^0-9A-Z]/g,"");
+async function api(path,{method="GET",body,headers={}}={}){
+  const r=await fetch(SERVER+path,{method,headers:{"Content-Type":"application/json",...headers},body:body&&JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok&&r.status!==409) throw new Error(j.error||("つうしんエラー "+r.status));
+  return {status:r.status,...j};
+}
+const syncTimers={};
+function syncSoon(c){
+  if(!SERVER||!c.code) return;
+  clearTimeout(syncTimers[c.code]);
+  syncTimers[c.code]=setTimeout(async()=>{
+    try{
+      const r=await api("/api/children/"+c.code,{method:"PUT",body:{data:c,updatedAt:c.updatedAt}});
+      if(r.status===409&&r.data){ replaceChild(c.code,r.data,r.updatedAt); netNote="ほかの たんまつの へんこうを よみこみました"; }
+      else netNote="サーバーと どうき しました";
+    }catch(e){ netNote="どうき できませんでした（"+e.message+"）。あとで もう一度 ためします"; }
+    if(mode==="set") setStatus();
+  },1500);
+}
+function replaceChild(code,data,updatedAt){
+  const i=store.children.findIndex(k=>k.code===code);
+  const next={...data,code,updatedAt};
+  if(i>=0){ const wasCurrent=store.children[i].id===store.current; store.children[i]=next; if(wasCurrent) store.current=next.id; }
+  else store.children.push(next);
+  save(); fired.clear(); primeFired();
+}
+async function pullAll(){
+  if(!SERVER) return;
+  for(const c of store.children.filter(k=>k.code)){
+    try{ const r=await api("/api/children/"+c.code); if(r.updatedAt>(c.updatedAt||0)) replaceChild(c.code,r.data,r.updatedAt); }catch(e){}
+  }
+  mode==="kid"?renderKid():renderSet();
+}
+async function registerChild(){
+  const c=child(); const key=document.getElementById("orgKey").value.trim(); store.device.orgKey=key; save();
+  try{ const r=await api("/api/children",{method:"POST",headers:{"X-Org-Key":key},body:{data:c}});
+    c.code=r.code; c.updatedAt=r.updatedAt; save(); netNote="コードを つくりました"; }
+  catch(e){ netNote=e.message; }
+  renderSet();
+}
+async function importCode(){
+  const code=normCode(document.getElementById("codeIn").value);
+  if(code.length!==10){ netNote="コードは 10もじです（れい：ABCDE-23456）"; setStatus(); return; }
+  try{ const r=await api("/api/children/"+code);
+    if(store.sample&&store.children.length===1&&!store.children[0].code) store.children=[];
+    replaceChild(code,r.data,r.updatedAt); store.current=store.children.find(k=>k.code===code).id; store.sample=false; save();
+    editPattern=null; netNote="よみこみました"; }
+  catch(e){ netNote=e.message; }
+  renderSet();
+}
+const b64ToBytes = s => { const b=atob((s+"===".slice((s.length+3)%4)).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(b,ch=>ch.charCodeAt(0)); };
+const pushReady = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+async function enablePush(){
+  const c=child();
+  if(!pushReady()){ netNote="この ひらきかたでは つうちが つかえません。Safariの「きょうゆう」→「ホーム画面に追加」から ひらいてください"; renderSet(); return; }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ netNote="つうちが きょかされていません。iPhoneの「設定」→「通知」→「きょうのよてい」で オンに してください"; renderSet(); return; }
+    const reg=await navigator.serviceWorker.ready;
+    const {vapidPublicKey}=await api("/api/config");
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(vapidPublicKey)});
+    await api("/api/children/"+c.code+"/devices",{method:"POST",body:{subscription:sub.toJSON()}});
+    store.device.push[c.code]=true; save(); netNote="この iPhoneで つうちを うけます";
+  }catch(e){ netNote="つうちを とうろく できませんでした（"+e.message+"）"; }
+  renderSet();
+}
+async function disablePush(code=child().code){
+  try{
+    const reg=await navigator.serviceWorker.ready, sub=await reg.pushManager.getSubscription();
+    if(sub) await api("/api/children/"+code+"/devices",{method:"DELETE",body:{endpoint:sub.endpoint}});
+    delete store.device.push[code]; save();
+    if(sub&&!Object.keys(store.device.push).length) await sub.unsubscribe();
+    netNote="つうちを とめました";
+  }catch(e){ netNote="とめられませんでした（"+e.message+"）"; }
+  if(mode==="set") renderSet();
+}
+async function testPush(){
+  try{ const r=await api("/api/children/"+child().code+"/test",{method:"POST"}); netNote=r.sent?"テストつうちを "+r.sent+"だいに おくりました":"つうちを うける たんまつが まだ ありません"; }
+  catch(e){ netNote=e.message; }
+  setStatus();
+}
+function setStatus(){ const el=document.getElementById("netStatus"); if(el) el.textContent=netNote; }
 
 /* today's pattern and effective tasks (pattern + today's delays) */
 function ensureDay(c=child()){ if(c.day?.date!==dayKey()){ c.day={date:dayKey(),done:[],shifts:{}}; if(c.override?.date!==dayKey()) c.override=null; fired.clear(); primeFired(); save(); } }
@@ -357,15 +451,15 @@ function extendCurrent(m){
     if(t.id===cur.id) c.day.shifts[t.id]={start:t.start,end:fmt(oldEnd+m)};
     else if(toMin(t.start)>=oldEnd) c.day.shifts[t.id]={start:fmt(toMin(t.start)+m),end:fmt(toMin(t.end)+m)};
   }
-  save(); chime(); speak(taskSpoken(cur)+"を "+m+"ふん のばすよ",200); renderKid();
+  dirty(c); chime(); speak(taskSpoken(cur)+"を "+m+"ふん のばすよ",200); renderKid();
 }
 kid.addEventListener("click",ev=>{
   const ex=ev.target.closest("[data-extend]"); if(ex){ extendCurrent(+ex.dataset.extend); return; }
-  if(ev.target.closest("[data-undo]")){ child().day.shifts={}; save(); renderKid(); return; }
+  if(ev.target.closest("[data-undo]")){ child().day.shifts={}; dirty(child()); renderKid(); return; }
   const b=ev.target.closest("[data-done]"); if(!b) return;
   const c=child(), id=b.dataset.done, ids=c.day.done, i=ids.indexOf(id);
   if(i<0){ ids.push(id); praise(todayTasks(c).find(t=>t.id===id)); } else ids.splice(i,1);
-  save(); renderKid();
+  dirty(c); renderKid();
 });
 
 /* ---------- settings view ---------- */
@@ -382,8 +476,23 @@ function renderSet(){
       ${[["kana","ひらがなだけ"],["ruby","漢字＋ふりがな"],["kanji","漢字"]].map(([v,l])=>`<option value="${v}" ${v===c.textMode?"selected":""}>${l}</option>`).join("")}</select></label>
       <span class="status">れい：${tx(W.today,c.textMode)}</span></div>
     <div class="row"><button class="iconbtn" id="addChild" type="button" ${store.children.length>=10?"disabled":""}>＋ こどもを ふやす</button>
-      ${store.children.length>1?`<button class="del" id="delChild" type="button" style="margin:0">この こどもを けす</button>`:""}</div>
+      ${store.children.length>1?`<button class="del" id="delChild" type="button" style="margin:0">この こどもを この iPhoneから けす</button>`:""}</div>
     <div id="confirmChild" hidden class="row"><span>${esc(c.name)}さんの よていを ぜんぶ けしますか？</span><button class="del" id="yesChild" type="button" style="margin:0">けす</button><button class="iconbtn" id="noChild" type="button">やめる</button></div>
+  </section>
+
+  <section class="panel"><h3>アプリを とじていても しらせる</h3>
+    ${!SERVER?`<p class="status">つうちサーバーが まだ せっていされていません（config.js）。</p>`:`
+    ${/iP(hone|ad|od)/.test(navigator.userAgent)&&!navigator.standalone?`<p class="note">つうちを うけるには、Safariの「きょうゆう」ボタン →「ホーム画面に追加」で アプリにしてから、ホーム画面の アイコンで ひらいてください。</p>`:""}
+    ${c.code?`<div class="field"><span>${esc(c.name)}さんの コード</span><div class="row"><span class="code">${fmtCode(c.code)}</span><button class="iconbtn" id="copyCode" type="button">コピー</button></div></div>
+      <p class="status">ほかの iPhoneで この コードを いれると、おなじ よていを つかえます。どちらで かえても どうき されます。コードは ほかの人に おしえないでください。</p>
+      <div class="row">${store.device.push[c.code]?`<button class="iconbtn" id="pushOff" type="button">この iPhoneの つうちを とめる</button>`:`<button class="primary" id="pushOn" type="button">この iPhoneで つうちを うける</button>`}
+        <button class="iconbtn" id="pushTest" type="button">テスト つうち</button></div>`
+    :`<p class="status">しえんいんの かた：事業所キーを いれて この こどもを サーバーに とうろくすると、かぞくに わたす コードが できます。</p>
+      <div class="row"><label class="field"><span>事業所キー</span><input type="password" id="orgKey" value="${esc(store.device.orgKey)}" autocomplete="off"></label>
+        <button class="primary" id="registerBtn" type="button">とうろくして コードを つくる</button></div>`}
+    <div class="row"><label class="field"><span>コードを もらった かた</span><input id="codeIn" placeholder="ABCDE-23456" autocapitalize="characters" autocomplete="off"></label>
+      <button class="iconbtn" id="importBtn" type="button">よみこむ</button></div>
+    <p class="status" id="netStatus">${esc(netNote)}</p>`}
   </section>
 
   <section class="panel"><h3>こえと おしらせ</h3>
@@ -433,7 +542,7 @@ function renderSet(){
     <div class="row"><label class="field"><span>ついかする ながさ</span><select id="addLen">${[5,10,15,20,30,45,60].map(m=>`<option ${m===(store.addLen||15)?"selected":""} value="${m}">${m}ふん</option>`).join("")}</select></label></div>
   </section>
   <section class="panel"><div class="row"><button class="iconbtn" id="clearDone" type="button">きょうの はなまるを リセット</button></div>
-    <p class="status">よていは この iPhoneに ほぞんされます。</p></section>`;
+    <p class="status">${c.code&&SERVER?"よていは この iPhoneと サーバーに ほぞんされます。":"よていは この iPhoneに ほぞんされます。"}</p></section>`;
   setv.innerHTML=h;
 }
 function curPattern(){ return child().patterns.find(p=>p.id===editPattern); }
@@ -497,9 +606,15 @@ setv.addEventListener("click",ev=>{
     case "addChild": { const k=newChild("こども"+(store.children.length+1)); store.children.push(k); store.current=k.id; editPattern=null; changed(); break; }
     case "delChild": show("confirmChild",true); break;
     case "noChild": show("confirmChild",false); break;
-    case "yesChild": store.children=store.children.filter(k=>k.id!==c.id); store.current=store.children[0].id; editPattern=null; changed(); break;
+    case "yesChild": if(c.code&&store.device.push[c.code]) disablePush(c.code); store.children=store.children.filter(k=>k.id!==c.id); store.current=store.children[0].id; editPattern=null; changed(); break;
     case "testVoice": { if(!audioOn) enableAudio(); const t=p.tasks[0]||{name:"歯みがき",yomi:"はみがき"};
       chime(); speak([c.wakeMsg,fill(c.msgs.pre,t,c.preMin||5,true),fill(c.msgs.start,t,0,true),fill(c.msgs.warn,t,c.warnMin||5,true),fill(c.msgs.end,t,0,true)]); break; }
+    case "registerBtn": registerChild(); break;
+    case "importBtn": importCode(); break;
+    case "pushOn": enablePush(); break;
+    case "pushOff": disablePush(); break;
+    case "pushTest": testPush(); break;
+    case "copyCode": navigator.clipboard?.writeText(fmtCode(c.code)).then(()=>{ el.textContent="コピーしました"; },()=>{}); break;
     case "resetMsgs": c.msgs={...DEFAULT_MSGS}; changed(); break;
     case "clearDone": c.day.done=[]; save(); el.textContent="リセットしました"; break;
   }
@@ -534,6 +649,8 @@ function tick(){
 ensureDay(); primeFired(); labels(); tick(); setInterval(tick,1000);
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+pullAll();
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") pullAll(); });
 })();
 </script>
 </body>
